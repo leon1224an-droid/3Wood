@@ -3,7 +3,8 @@
     "allow": [
       "Bash(git add *)",
       "Bash(git commit -m 'M0: scaffold SwiftUI app, Xcode project, and local Supabase stack *)",
-      "Bash(git commit -m 'Add profiles and courses schema with search/map RPCs and dev seed *)"
+      "Bash(git commit -m 'Add profiles and courses schema with search/map RPCs and dev seed *)",
+      "Bash(git commit -m 'Import full US course dataset from OpenGolfAPI \\(16,772 courses\\) *)"
     ]
   }
 }
