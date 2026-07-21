@@ -11,6 +11,9 @@ create table public.profiles (
 
 alter table public.profiles enable row level security;
 
+-- RLS policies gate rows; these grants gate the table itself.
+grant select, insert, update on public.profiles to authenticated;
+
 -- Beli-style public profiles: any signed-in user can view anyone.
 create policy "profiles_select" on public.profiles
   for select to authenticated using (true);

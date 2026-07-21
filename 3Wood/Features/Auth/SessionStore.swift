@@ -1,0 +1,57 @@
+import Foundation
+import Supabase
+
+/// Observes Supabase auth state and resolves it into what the UI needs:
+/// signed out, signed in but missing a profile (first launch), or fully signed in.
+@Observable
+@MainActor
+final class SessionStore {
+    enum State {
+        case loading
+        case signedOut
+        case needsProfile(userID: UUID)
+        case signedIn(Profile)
+    }
+
+    private(set) var state: State = .loading
+
+    /// Runs for the lifetime of the root view, reacting to every auth change.
+    func start() async {
+        for await (event, session) in supa.auth.authStateChanges {
+            switch event {
+            case .initialSession, .signedIn, .userUpdated:
+                if let session {
+                    await resolveProfile(userID: session.user.id)
+                } else {
+                    state = .signedOut
+                }
+            case .signedOut, .userDeleted:
+                state = .signedOut
+            default:
+                break
+            }
+        }
+    }
+
+    /// Called by UsernameSetupView once the profile row exists.
+    func profileCreated(_ profile: Profile) {
+        state = .signedIn(profile)
+    }
+
+    func signOut() async {
+        try? await supa.auth.signOut()
+    }
+
+    private func resolveProfile(userID: UUID) async {
+        do {
+            if let profile = try await ProfileRepo.fetch(userID: userID) {
+                state = .signedIn(profile)
+            } else {
+                state = .needsProfile(userID: userID)
+            }
+        } catch {
+            // Couldn't reach the backend; treat as signed out so the user can retry.
+            state = .signedOut
+        }
+    }
+}

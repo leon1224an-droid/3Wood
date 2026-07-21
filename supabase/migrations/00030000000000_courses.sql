@@ -25,6 +25,8 @@ create index courses_state_idx on public.courses (state, city);
 
 alter table public.courses enable row level security;
 
+grant select on public.courses to authenticated;
+
 create policy "courses_select" on public.courses
   for select to authenticated using (true);
 

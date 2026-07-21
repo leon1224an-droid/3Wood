@@ -1,13 +1,25 @@
 import SwiftUI
 
-/// Auth gate: shows the sign-in flow when signed out, the main app when signed in.
-/// M1 will introduce SessionStore; until then we go straight to the tabs.
+/// Auth gate: routes between the sign-in flow, first-launch username setup,
+/// and the main app based on session state.
 struct RootView: View {
-    var body: some View {
-        MainTabView()
-    }
-}
+    @Environment(SessionStore.self) private var session
 
-#Preview {
-    RootView()
+    var body: some View {
+        Group {
+            switch session.state {
+            case .loading:
+                ProgressView()
+            case .signedOut:
+                WelcomeView()
+            case .needsProfile(let userID):
+                UsernameSetupView(userID: userID)
+            case .signedIn:
+                MainTabView()
+            }
+        }
+        .task {
+            await session.start()
+        }
+    }
 }
