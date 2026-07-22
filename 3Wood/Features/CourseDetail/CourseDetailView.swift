@@ -4,6 +4,9 @@ import MapKit
 struct CourseDetailView: View {
     let course: Course
 
+    @State private var myRanking: RankedCourse?
+    @State private var isLoggingCourse = false
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -22,6 +25,24 @@ struct CourseDetailView: View {
                     }
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+                }
+
+                // Your score (once ranked)
+                if let myRanking {
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text("Your score")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            Text("#\(myRanking.rankPosition) of your \"\(myRanking.bucket.label)\" courses")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        Spacer()
+                        ScoreBadge(score: myRanking.score)
+                    }
+                    .padding()
+                    .background(Color.fairwayGreen.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
                 }
 
                 // Community rating card
@@ -46,6 +67,17 @@ struct CourseDetailView: View {
                 .padding()
                 .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
 
+                Button {
+                    isLoggingCourse = true
+                } label: {
+                    Label(myRanking == nil ? "Log this course" : "Re-rank this course",
+                          systemImage: "plus.circle.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .tint(Color.fairwayGreen)
+
                 // Map snippet
                 Map(initialPosition: .region(MKCoordinateRegion(
                     center: course.coordinate,
@@ -62,5 +94,16 @@ struct CourseDetailView: View {
         }
         .navigationTitle(course.name)
         .navigationBarTitleDisplayMode(.inline)
+        .fullScreenCover(isPresented: $isLoggingCourse, onDismiss: {
+            Task { await reloadMyRanking() }
+        }) {
+            LogCourseFlow(course: course)
+        }
+        .task { await reloadMyRanking() }
+    }
+
+    private func reloadMyRanking() async {
+        let mine = try? await RankingRepo.myRankedCourses()
+        myRanking = mine?.first { $0.courseID == course.id }
     }
 }

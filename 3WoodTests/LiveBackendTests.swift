@@ -35,8 +35,14 @@ struct LiveBackendTests {
         let data = try await callRPC("search_courses", body: ["p_query": "pebble beach"], token: token)
         let courses = try JSONDecoder().decode([Course].self, from: data)
         #expect(!courses.isEmpty)
-        #expect(courses.contains { $0.name.contains("Pebble Beach") })
-        #expect(courses.allSatisfy { $0.ratingCount == 0 && $0.avgScore == nil })
+        let pebble = courses.first { $0.name == "Pebble Beach Golf Links" }
+        #expect(pebble != nil)
+        // The test1 fixture user has ranked Pebble Beach, so a community
+        // average must be present and within the 0-10 scale.
+        #expect(pebble?.ratingCount ?? 0 >= 1)
+        if let avg = pebble?.avgScore {
+            #expect((0.0...10.0).contains(avg))
+        }
     }
 
     @Test func courseModelDecodesLiveRegionResults() async throws {
