@@ -46,4 +46,12 @@ enum SocialRepo {
             .value
         return rows.first ?? ProfileStats(played: 0, followers: 0, following: 0)
     }
+
+    static func followers(of userID: UUID) async throws -> [ProfileSummary] {
+        try await supa.rpc("followers", params: ["p_user_id": userID]).execute().value
+    }
+
+    static func following(of userID: UUID) async throws -> [ProfileSummary] {
+        try await supa.rpc("following", params: ["p_user_id": userID]).execute().value
+    }
 }

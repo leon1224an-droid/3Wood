@@ -16,16 +16,15 @@ struct OtherProfileView: View {
                         Text("@\(person.username)")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        if let stats {
-                            Text("\(stats.played) played · \(stats.followers) followers · \(stats.following) following")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
                     }
                     Spacer()
                     FollowButton(person: $person)
                 }
                 .padding(.vertical, 4)
+                if let stats {
+                    ProfileStatsBar(userID: person.id, stats: stats)
+                        .padding(.vertical, 4)
+                }
             }
 
             Section("Their courses") {
@@ -34,19 +33,21 @@ struct OtherProfileView: View {
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(Array(ranked.enumerated()), id: \.element.id) { index, course in
-                        HStack(spacing: 12) {
-                            Text("\(index + 1)")
-                                .font(.subheadline.monospacedDigit())
-                                .foregroundStyle(.secondary)
-                                .frame(width: 24, alignment: .trailing)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(course.name).lineLimit(1)
-                                Text(course.locationText)
-                                    .font(.caption)
+                        NavigationLink(value: course) {
+                            HStack(spacing: 12) {
+                                Text("\(index + 1)")
+                                    .font(.subheadline.monospacedDigit())
                                     .foregroundStyle(.secondary)
+                                    .frame(width: 24, alignment: .trailing)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(course.name).lineLimit(1)
+                                    Text(course.locationText)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                ScoreBadge(score: course.score, compact: true)
                             }
-                            Spacer()
-                            ScoreBadge(score: course.score, compact: true)
                         }
                     }
                 }
@@ -54,6 +55,9 @@ struct OtherProfileView: View {
         }
         .navigationTitle("@\(person.username)")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(for: RankedCourse.self) { ranked in
+            CourseDetailByID(courseID: ranked.courseID)
+        }
         .task {
             async let statsTask = SocialRepo.stats(of: person.id)
             async let rankedTask = SocialRepo.rankedCourses(of: person.id)

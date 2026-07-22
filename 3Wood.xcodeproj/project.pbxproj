@@ -18,11 +18,19 @@
 			remoteGlobalIDString = AB0000000000000000000002;
 			remoteInfo = "3Wood";
 		};
+		AB0000000000000000000036 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AB0000000000000000000002;
+			remoteInfo = "3Wood";
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		AB0000000000000000000014 /* 3Wood.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "3Wood.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB0000000000000000000015 /* 3WoodTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "3WoodTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB0000000000000000000016 /* 3WoodUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "3WoodUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -34,6 +42,11 @@
 		AB0000000000000000000013 /* 3WoodTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "3WoodTests";
+			sourceTree = "<group>";
+		};
+		AB0000000000000000000017 /* 3WoodUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "3WoodUITests";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -48,6 +61,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		AB0000000000000000000024 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB0000000000000000000027 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -71,6 +91,7 @@
 			children = (
 				AB0000000000000000000014 /* 3Wood.app */,
 				AB0000000000000000000015 /* 3WoodTests.xctest */,
+				AB0000000000000000000016 /* 3WoodUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -124,6 +145,29 @@
 			productReference = AB0000000000000000000015 /* 3WoodTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		AB0000000000000000000004 /* 3WoodUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AB0000000000000000000049 /* Build configuration list for PBXNativeTarget "3WoodUITests" */;
+			buildPhases = (
+				AB0000000000000000000026 /* Sources */,
+				AB0000000000000000000027 /* Frameworks */,
+				AB0000000000000000000028 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AB0000000000000000000035 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				AB0000000000000000000017 /* 3WoodUITests */,
+			);
+			name = "3WoodUITests";
+			packageProductDependencies = (
+			);
+			productName = "3WoodUITests";
+			productReference = AB0000000000000000000016 /* 3WoodUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -138,6 +182,10 @@
 						CreatedOnToolsVersion = 16.0;
 					};
 					AB0000000000000000000003 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = AB0000000000000000000002;
+					};
+					AB0000000000000000000004 = {
 						CreatedOnToolsVersion = 16.0;
 						TestTargetID = AB0000000000000000000002;
 					};
@@ -162,6 +210,7 @@
 			targets = (
 				AB0000000000000000000002 /* 3Wood */,
 				AB0000000000000000000003 /* 3WoodTests */,
+				AB0000000000000000000004 /* 3WoodUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -175,6 +224,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		AB0000000000000000000025 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB0000000000000000000028 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -198,6 +254,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AB0000000000000000000026 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -205,6 +268,11 @@
 			isa = PBXTargetDependency;
 			target = AB0000000000000000000002 /* 3Wood */;
 			targetProxy = AB0000000000000000000034 /* PBXContainerItemProxy */;
+		};
+		AB0000000000000000000035 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AB0000000000000000000002 /* 3Wood */;
+			targetProxy = AB0000000000000000000036 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -418,6 +486,40 @@
 			};
 			name = Release;
 		};
+		AB000000000000000000004A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.leonan.threewooduitests;
+				PRODUCT_MODULE_NAME = ThreeWoodUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = "3Wood";
+			};
+			name = Debug;
+		};
+		AB000000000000000000004B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.leonan.threewooduitests;
+				PRODUCT_MODULE_NAME = ThreeWoodUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = "3Wood";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -444,6 +546,15 @@
 			buildConfigurations = (
 				AB0000000000000000000047 /* Debug */,
 				AB0000000000000000000048 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AB0000000000000000000049 /* Build configuration list for PBXNativeTarget "3WoodUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AB000000000000000000004A /* Debug */,
+				AB000000000000000000004B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
