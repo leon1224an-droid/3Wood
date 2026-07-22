@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProfileView: View {
     @Environment(SessionStore.self) private var session
+    @State private var stats: ProfileStats?
 
     var body: some View {
         NavigationStack {
@@ -13,8 +14,24 @@ struct ProfileView: View {
                                 .font(.title2.bold())
                             Text("@\(profile.username)")
                                 .foregroundStyle(.secondary)
+                            if let stats {
+                                Text("\(stats.played) played · \(stats.followers) followers · \(stats.following) following")
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                            }
                         }
                         .padding(.vertical, 4)
+                    }
+                    .task {
+                        stats = try? await SocialRepo.stats(of: profile.id)
+                    }
+                }
+
+                Section {
+                    NavigationLink {
+                        FindFriendsView()
+                    } label: {
+                        Label("Find friends", systemImage: "person.badge.plus")
                     }
                 }
 

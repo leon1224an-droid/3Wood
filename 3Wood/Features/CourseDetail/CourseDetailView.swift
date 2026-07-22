@@ -7,6 +7,7 @@ struct CourseDetailView: View {
     @State private var myRanking: RankedCourse?
     @State private var isLoggingCourse = false
     @State private var isBookmarked = false
+    @State private var friendScores: [FriendScore] = []
 
     var body: some View {
         ScrollView {
@@ -68,6 +69,23 @@ struct CourseDetailView: View {
                 .padding()
                 .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
 
+                if !friendScores.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Friends' scores")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        ForEach(friendScores) { friend in
+                            HStack {
+                                Text("@\(friend.username)")
+                                Spacer()
+                                ScoreBadge(score: friend.score, compact: true)
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
+                }
+
                 Button {
                     isLoggingCourse = true
                 } label: {
@@ -116,8 +134,10 @@ struct CourseDetailView: View {
     private func reloadMyRanking() async {
         async let mineTask = RankingRepo.myRankedCourses()
         async let bookmarkTask = WantToPlayRepo.contains(courseID: course.id)
+        async let friendsTask = SocialRepo.friendScores(courseID: course.id)
         myRanking = (try? await mineTask)?.first { $0.courseID == course.id }
         isBookmarked = (try? await bookmarkTask) ?? false
+        friendScores = (try? await friendsTask) ?? []
     }
 
     private func toggleBookmark() async {
