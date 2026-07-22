@@ -18,9 +18,8 @@ struct ProfileView: View {
                             Text("@\(profile.username)")
                                 .foregroundStyle(.secondary)
                             if let stats {
-                                Text("\(stats.played) played · \(stats.followers) followers · \(stats.following) following")
-                                    .font(.caption)
-                                    .foregroundStyle(.tertiary)
+                                ProfileStatsBar(userID: profile.id, stats: stats)
+                                    .padding(.top, 6)
                             }
                         }
                         .padding(.vertical, 4)

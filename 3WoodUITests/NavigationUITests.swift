@@ -168,4 +168,40 @@ final class NavigationUITests: XCTestCase {
         XCTAssertTrue(app.tabBars.buttons["Lists"].waitForExistence(timeout: timeout),
                       "Did not return to the app after logging")
     }
+
+    /// Verifies the quality-of-life additions: tappable Played rows, the
+    /// followers/following lists, and the map filter/list toggle.
+    func testQualityOfLife() {
+        ensureSignedInAsDemo()
+
+        // Played row → course detail.
+        tap(app.tabBars.buttons["Lists"], "Lists tab")
+        let firstRow = app.cells.element(boundBy: 0)
+        XCTAssertTrue(firstRow.waitForExistence(timeout: timeout), "Played list has no rows")
+        firstRow.tap()
+        XCTAssertTrue(app.staticTexts["Community rating"].waitForExistence(timeout: timeout),
+                      "Tapping a Played course did not open its detail")
+        snapshot("14-PlayedRow-Detail")
+        goBack()
+
+        // Profile → Following list.
+        tap(app.tabBars.buttons["Profile"], "Profile tab")
+        tap(app.staticTexts["Following"], "Following stat")
+        XCTAssertTrue(app.navigationBars["Following"].waitForExistence(timeout: timeout),
+                      "Following stat did not open the people list")
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH '@'")).firstMatch
+                        .waitForExistence(timeout: timeout), "Following list is empty")
+        snapshot("15-Following-List")
+
+        // Map → list toggle + filter.
+        tap(app.tabBars.buttons["Map"], "Map tab")
+        sleep(2)
+        tap(app.buttons["mapModeToggle"], "Map/List toggle")
+        XCTAssertTrue(app.cells.element(boundBy: 0).waitForExistence(timeout: timeout),
+                      "Map list view shows no courses")
+        snapshot("16-Map-ListView")
+        tap(app.buttons["mapFilter"], "Map filter menu")
+        tap(app.buttons["Private"], "Private filter option")
+        snapshot("17-Map-Filtered")
+    }
 }

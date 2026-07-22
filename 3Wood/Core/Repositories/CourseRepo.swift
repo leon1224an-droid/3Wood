@@ -18,4 +18,34 @@ enum CourseRepo {
         .execute()
         .value
     }
+
+    static func course(id: Int) async throws -> Course? {
+        let rows: [Course] = try await supa.rpc("course_by_id", params: ["p_id": id])
+            .execute()
+            .value
+        return rows.first
+    }
+
+    /// Bounding box of a state's courses, for recentering the map.
+    static func stateRegion(_ state: String) async throws -> Region? {
+        let rows: [Region] = try await supa.rpc("state_region", params: ["p_state": state])
+            .execute()
+            .value
+        guard let r = rows.first, r.minLat != nil else { return nil }
+        return r
+    }
+}
+
+struct Region: Decodable, Sendable {
+    let minLat: Double?
+    let minLng: Double?
+    let maxLat: Double?
+    let maxLng: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case minLat = "min_lat"
+        case minLng = "min_lng"
+        case maxLat = "max_lat"
+        case maxLng = "max_lng"
+    }
 }

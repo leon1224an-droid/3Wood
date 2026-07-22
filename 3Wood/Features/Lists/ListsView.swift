@@ -41,6 +41,9 @@ struct ListsView: View {
             .navigationDestination(for: Course.self) { course in
                 CourseDetailView(course: course)
             }
+            .navigationDestination(for: RankedCourse.self) { ranked in
+                CourseDetailByID(courseID: ranked.courseID)
+            }
             .fullScreenCover(isPresented: $isLoggingCourse, onDismiss: {
                 Task { await reload() }
             }) {
@@ -67,19 +70,21 @@ struct ListsView: View {
         } else {
             List {
                 ForEach(Array(ranked.enumerated()), id: \.element.id) { index, course in
-                    HStack(spacing: 12) {
-                        Text("\(index + 1)")
-                            .font(.headline.monospacedDigit())
-                            .foregroundStyle(.secondary)
-                            .frame(width: 28, alignment: .trailing)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(course.name).lineLimit(1)
-                            Text(course.locationText)
-                                .font(.subheadline)
+                    NavigationLink(value: course) {
+                        HStack(spacing: 12) {
+                            Text("\(index + 1)")
+                                .font(.headline.monospacedDigit())
                                 .foregroundStyle(.secondary)
+                                .frame(width: 28, alignment: .trailing)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(course.name).lineLimit(1)
+                                Text(course.locationText)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            ScoreBadge(score: course.score)
                         }
-                        Spacer()
-                        ScoreBadge(score: course.score)
                     }
                 }
             }
