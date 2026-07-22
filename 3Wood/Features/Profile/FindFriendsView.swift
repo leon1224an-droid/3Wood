@@ -3,24 +3,32 @@ import SwiftUI
 struct FindFriendsView: View {
     @State private var query = ""
     @State private var results: [ProfileSummary] = []
+    @State private var selectedPerson: ProfileSummary?
     @State private var searchTask: Task<Void, Never>?
 
     var body: some View {
+        // The row carries two independent tap targets (open profile / follow),
+        // so navigation is driven by an explicit tap gesture rather than a
+        // NavigationLink nested beside the button — the latter makes row taps
+        // unreliable in SwiftUI lists.
         List($results) { $person in
             HStack {
-                NavigationLink(value: person) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("@\(person.username)")
-                        if let name = person.displayName {
-                            Text(name)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("@\(person.username)")
+                    if let name = person.displayName {
+                        Text(name)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
                     }
                 }
                 Spacer()
                 FollowButton(person: $person)
+                Image(systemName: "chevron.right")
+                    .font(.caption.bold())
+                    .foregroundStyle(.tertiary)
             }
+            .contentShape(Rectangle())
+            .onTapGesture { selectedPerson = person }
         }
         .listStyle(.plain)
         .searchable(text: $query, prompt: "Search by username")
@@ -38,7 +46,7 @@ struct FindFriendsView: View {
         }
         .navigationTitle("Find friends")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(for: ProfileSummary.self) { person in
+        .navigationDestination(item: $selectedPerson) { person in
             OtherProfileView(person: person)
         }
     }
@@ -78,7 +86,7 @@ struct FollowButton: View {
                 }
             }
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(.borderless)
         .tint(person.isFollowing ? .secondary : Color.fairwayGreen)
         .controlSize(.small)
     }
