@@ -37,3 +37,4 @@ fastlane/test_output
 
 # Node (in case a cross-platform stack is chosen later)
 node_modules/
+.claude/
