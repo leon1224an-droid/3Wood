@@ -6,6 +6,7 @@ struct CourseDetailView: View {
 
     @State private var myRanking: RankedCourse?
     @State private var isLoggingCourse = false
+    @State private var isBookmarked = false
 
     var body: some View {
         ScrollView {
@@ -94,6 +95,16 @@ struct CourseDetailView: View {
         }
         .navigationTitle(course.name)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    Task { await toggleBookmark() }
+                } label: {
+                    Image(systemName: isBookmarked ? "bookmark.fill" : "bookmark")
+                }
+                .tint(Color.fairwayGreen)
+            }
+        }
         .fullScreenCover(isPresented: $isLoggingCourse, onDismiss: {
             Task { await reloadMyRanking() }
         }) {
@@ -103,7 +114,22 @@ struct CourseDetailView: View {
     }
 
     private func reloadMyRanking() async {
-        let mine = try? await RankingRepo.myRankedCourses()
-        myRanking = mine?.first { $0.courseID == course.id }
+        async let mineTask = RankingRepo.myRankedCourses()
+        async let bookmarkTask = WantToPlayRepo.contains(courseID: course.id)
+        myRanking = (try? await mineTask)?.first { $0.courseID == course.id }
+        isBookmarked = (try? await bookmarkTask) ?? false
+    }
+
+    private func toggleBookmark() async {
+        do {
+            if isBookmarked {
+                try await WantToPlayRepo.remove(courseID: course.id)
+            } else {
+                try await WantToPlayRepo.add(courseID: course.id)
+            }
+            isBookmarked.toggle()
+        } catch {
+            // Leave the icon as-is; the next reload reflects reality.
+        }
     }
 }
