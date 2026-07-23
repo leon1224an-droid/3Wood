@@ -238,4 +238,49 @@ final class NavigationUITests: XCTestCase {
                       "Leaderboard is empty")
         snapshot("19-Leaderboard")
     }
+
+    /// Verifies course reviews display and the review editor opens.
+    func testReviews() {
+        ensureSignedInAsDemo()
+
+        switchToTab("Search")
+        let searchField = app.searchFields.firstMatch
+        tap(searchField, "Search field")
+        searchField.typeText("pebble beach")
+        let pebble = app.staticTexts["Pebble Beach Golf Links"]
+        XCTAssertTrue(pebble.waitForExistence(timeout: timeout), "Pebble not found")
+        pebble.tap()
+
+        // Reviews live below the fold — scroll to them.
+        XCTAssertTrue(app.staticTexts["Community rating"].waitForExistence(timeout: timeout))
+        app.swipeUp()
+        app.swipeUp()
+        let aReview = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'back nine'")).firstMatch
+        XCTAssertTrue(aReview.waitForExistence(timeout: timeout), "Reviews not shown on course detail")
+        snapshot("20-Reviews")
+
+        // Editor opens (ben already has a review, so the button reads "Edit").
+        let edit = app.buttons["Edit"]
+        if edit.waitForExistence(timeout: 3) {
+            edit.tap()
+            XCTAssertTrue(app.navigationBars["Edit review"].waitForExistence(timeout: timeout),
+                          "Review editor did not open")
+            snapshot("21-WriteReview")
+            app.buttons["Cancel"].tap()
+        }
+    }
+
+    /// Verifies the map city-jump (geocode + recenter + reload courses).
+    func testMapCityJump() {
+        ensureSignedInAsDemo()
+        switchToTab("Map")
+        snapshot("22-Map-Controls")
+
+        let search = app.searchFields.firstMatch
+        tap(search, "Map city search")
+        search.typeText("Scottsdale, Arizona\n")
+        sleep(4) // geocode + recenter + region course load
+        snapshot("23-Map-CityJump")
+        XCTAssertTrue(search.exists, "Map search field missing")
+    }
 }

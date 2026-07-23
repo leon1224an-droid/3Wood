@@ -8,6 +8,10 @@ struct CourseDetailView: View {
     @State private var isLoggingCourse = false
     @State private var isBookmarked = false
     @State private var friendScores: [FriendScore] = []
+    @State private var reviews: [Review] = []
+    @State private var isWritingReview = false
+
+    private var myReview: Review? { reviews.first(where: \.isMine) }
 
     var body: some View {
         ScrollView {
@@ -91,11 +95,10 @@ struct CourseDetailView: View {
                 } label: {
                     Label(myRanking == nil ? "Log this course" : "Update my ranking",
                           systemImage: "plus.circle.fill")
-                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .tint(Color.fairwayGreen)
+                .buttonStyle(.primary)
+
+                reviewsSection
 
                 // Map snippet
                 Map(initialPosition: .region(MKCoordinateRegion(
@@ -128,16 +131,73 @@ struct CourseDetailView: View {
         }) {
             LogCourseFlow(course: course)
         }
+        .sheet(isPresented: $isWritingReview) {
+            WriteReviewSheet(courseID: course.id, existing: myReview?.body) {
+                Task { await reloadReviews() }
+            }
+        }
         .task { await reloadMyRanking() }
+    }
+
+    @ViewBuilder
+    private var reviewsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(reviews.isEmpty ? "Reviews" : "^[\(reviews.count) review](inflect: true)")
+                    .font(.headline)
+                Spacer()
+                Button(myReview == nil ? "Write a review" : "Edit") {
+                    isWritingReview = true
+                }
+                .font(.subheadline)
+            }
+
+            if reviews.isEmpty {
+                Text("No reviews yet. Share what you thought of the course.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(reviews) { review in
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("@\(review.username)")
+                                .font(.subheadline.weight(.semibold))
+                            if review.isMine {
+                                Text("You")
+                                    .font(.caption2.weight(.medium))
+                                    .padding(.horizontal, 6).padding(.vertical, 2)
+                                    .background(Color.fairwayGreen.opacity(0.15), in: Capsule())
+                                    .foregroundStyle(Color.fairwayGreen)
+                            }
+                            Spacer()
+                            Text(review.createdAt.formatted(.relative(presentation: .named)))
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        Text(review.body)
+                            .font(.subheadline)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                    .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
+                }
+            }
+        }
     }
 
     private func reloadMyRanking() async {
         async let mineTask = RankingRepo.myRankedCourses()
         async let bookmarkTask = WantToPlayRepo.contains(courseID: course.id)
         async let friendsTask = SocialRepo.friendScores(courseID: course.id)
+        async let reviewsTask = ReviewRepo.reviews(courseID: course.id)
         myRanking = (try? await mineTask)?.first { $0.courseID == course.id }
         isBookmarked = (try? await bookmarkTask) ?? false
         friendScores = (try? await friendsTask) ?? []
+        reviews = (try? await reviewsTask) ?? []
+    }
+
+    private func reloadReviews() async {
+        reviews = (try? await ReviewRepo.reviews(courseID: course.id)) ?? reviews
     }
 
     private func toggleBookmark() async {
