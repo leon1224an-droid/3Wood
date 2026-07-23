@@ -29,7 +29,11 @@ struct FeedView: View {
                 }
             }
             .navigationTitle("3Wood")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Wordmark(size: 24)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink {
                         LeaderboardView()

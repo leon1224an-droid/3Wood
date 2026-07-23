@@ -20,8 +20,8 @@ struct ScoreBadge: View {
         guard let score else { return .gray }
         switch score {
         case 6.7...: return .fairwayGreen
-        case 3.4..<6.7: return .orange
-        default: return .red
+        case 3.4..<6.7: return .sunriseGold
+        default: return .clayRed
         }
     }
 }

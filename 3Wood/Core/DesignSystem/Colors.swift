@@ -1,6 +1,11 @@
-import SwiftUI
-
-extension Color {
-    /// Primary brand color used for tints, score badges, and accents.
-    static let fairwayGreen = Color(red: 0.13, green: 0.47, blue: 0.25)
-}
+// "Refined Classic" palette — deep fairway green anchored by warm
+// cream/sand neutrals with a gold accent.
+//
+// Tokens are auto-generated from Assets.xcassets (GeneratedAssetSymbols),
+// each with a dark-mode variant:
+//   .fairwayGreen  primary brand green — tints, CTAs, liked-range scores
+//   .darkPine      deep supporting green — headings, emphasis
+//   .sunriseGold   warm gold accent — awards, highlights, mid-range scores
+//   .cream         warm card/surface background
+//   .sand          subtle warm neutral — borders, separators, muted fills
+//   .clayRed       muted brick red — low scores, destructive emphasis

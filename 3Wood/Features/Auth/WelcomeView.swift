@@ -9,8 +9,7 @@ struct WelcomeView: View {
                 Image(systemName: "figure.golf")
                     .font(.system(size: 72))
                     .foregroundStyle(Color.fairwayGreen)
-                Text("3Wood")
-                    .font(.largeTitle.bold())
+                Wordmark(size: 44)
                 Text("Rank every course you've played.")
                     .foregroundStyle(.secondary)
 
