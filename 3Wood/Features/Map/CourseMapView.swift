@@ -74,10 +74,14 @@ struct CourseMapView: View {
 
     private var mapView: some View {
         Map(position: $position) {
-            ForEach(filteredCourses) { course in
-                Annotation(course.name, coordinate: course.coordinate) {
-                    NavigationLink(value: course) {
-                        ScoreBadge(score: course.avgScore, compact: true)
+            // Only draw pins once zoomed in enough — at continental zoom the
+            // hundreds of overlapping badges read as dark blobs.
+            if !viewModel.showZoomHint {
+                ForEach(filteredCourses) { course in
+                    Annotation(course.name, coordinate: course.coordinate) {
+                        NavigationLink(value: course) {
+                            ScoreBadge(score: course.avgScore, compact: true)
+                        }
                     }
                 }
             }
@@ -86,13 +90,32 @@ struct CourseMapView: View {
             viewModel.regionChanged(context.region)
         }
         .overlay(alignment: .top) {
-            if viewModel.showZoomHint {
-                Text("Zoom in to explore courses")
-                    .font(.footnote)
+            VStack(spacing: 6) {
+                if viewModel.showZoomHint {
+                    Text("Zoom in to explore courses")
+                        .font(.footnote)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(.thinMaterial, in: Capsule())
+                }
+                activeFilterChip
+            }
+            .padding(.top, 8)
+        }
+    }
+
+    @ViewBuilder
+    private var activeFilterChip: some View {
+        if typeFilter != .all {
+            Button {
+                typeFilter = .all
+            } label: {
+                Label(typeFilter.rawValue, systemImage: "xmark.circle.fill")
+                    .font(.footnote.weight(.medium))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(.thinMaterial, in: Capsule())
-                    .padding(.top, 8)
+                    .background(Color.fairwayGreen.opacity(0.15), in: Capsule())
+                    .foregroundStyle(Color.fairwayGreen)
             }
         }
     }
@@ -106,9 +129,15 @@ struct CourseMapView: View {
                     description: Text("Pick a state or move the map, then switch back to the list.")
                 )
             } else {
-                List(filteredCourses.sorted { ($0.avgScore ?? -1) > ($1.avgScore ?? -1) }) { course in
-                    NavigationLink(value: course) {
-                        CourseRow(course: course)
+                List {
+                    if typeFilter != .all {
+                        activeFilterChip
+                            .listRowSeparator(.hidden)
+                    }
+                    ForEach(filteredCourses.sorted { ($0.avgScore ?? -1) > ($1.avgScore ?? -1) }) { course in
+                        NavigationLink(value: course) {
+                            CourseRow(course: course)
+                        }
                     }
                 }
                 .listStyle(.plain)

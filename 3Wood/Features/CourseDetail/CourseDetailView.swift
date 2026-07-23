@@ -89,7 +89,7 @@ struct CourseDetailView: View {
                 Button {
                     isLoggingCourse = true
                 } label: {
-                    Label(myRanking == nil ? "Log this course" : "Re-rank this course",
+                    Label(myRanking == nil ? "Log this course" : "Update my ranking",
                           systemImage: "plus.circle.fill")
                         .frame(maxWidth: .infinity)
                 }

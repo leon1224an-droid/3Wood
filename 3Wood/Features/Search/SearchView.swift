@@ -40,16 +40,38 @@ struct CourseRow: View {
     let course: Course
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(course.name)
-                    .lineLimit(1)
-                Text(course.locationText)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                HStack(spacing: 6) {
+                    Text(course.locationText)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    if let tag = course.shortType {
+                        Text(tag)
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(.quaternary, in: Capsule())
+                    }
+                }
             }
             Spacer()
-            ScoreBadge(score: course.avgScore)
+            // Community average — labelled so it isn't mistaken for a personal score.
+            if course.ratingCount > 0 {
+                VStack(spacing: 1) {
+                    ScoreBadge(score: course.avgScore, compact: true)
+                    Text("avg")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            } else {
+                Text("Not rated")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
         }
     }
 }

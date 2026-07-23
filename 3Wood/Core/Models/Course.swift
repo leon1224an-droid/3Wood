@@ -30,4 +30,11 @@ struct Course: Codable, Identifiable, Hashable, Sendable {
     var locationText: String {
         [city, state].compactMap(\.self).joined(separator: ", ")
     }
+
+    /// A short access-type label for row tags, e.g. "public/municipal" → "Public".
+    var shortType: String? {
+        guard let type = courseType, !type.isEmpty else { return nil }
+        let primary = type.split(separator: "/").first.map(String.init) ?? type
+        return primary.capitalized
+    }
 }

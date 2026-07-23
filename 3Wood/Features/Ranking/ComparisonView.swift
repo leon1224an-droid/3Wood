@@ -40,9 +40,7 @@ struct ComparisonView: View {
             }
             .font(.subheadline)
 
-            Text(comparisonsRemaining == 1
-                 ? "Last comparison"
-                 : "At most \(comparisonsRemaining) comparisons left")
+            Text(comparisonsRemaining == 1 ? "Last one" : "A few more to place this course")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         }

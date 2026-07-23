@@ -53,7 +53,7 @@ struct LogCourseFlow: View {
                     }
                 }
             }
-            .navigationTitle("Log a course")
+            .navigationTitle(model.step.isDone ? "All set!" : "Log a course")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if !model.step.isDone {

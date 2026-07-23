@@ -14,6 +14,7 @@ dataset supersedes.
 """
 import json
 import os
+import re
 import sys
 import time
 import urllib.request
@@ -66,10 +67,16 @@ def in_us_bounds(lat, lng) -> bool:
     return lat is not None and lng is not None and 17.5 <= lat <= 71.5 and -180.0 <= lng <= -64.5
 
 
+def clean_name(name: str) -> str:
+    # A stripped "™" leaves a literal "tm" glued to a word end (e.g.
+    # "Spyglass Hilltm" -> "Spyglass Hill"); repair it.
+    return re.sub(r"([a-z])tm( |$)", r"\1\2", name.strip())
+
+
 def to_row(c: dict):
     return (
         f"ogapi:{c['id']}",
-        c["course_name"].strip(),
+        clean_name(c["course_name"]),
         (c.get("city") or "").strip() or None,
         c.get("state"),
         c["lat"],
