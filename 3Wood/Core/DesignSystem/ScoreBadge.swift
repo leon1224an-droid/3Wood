@@ -8,10 +8,11 @@ struct ScoreBadge: View {
 
     var body: some View {
         Text(score.map { String(format: "%.1f", $0) } ?? "–")
-            .font(compact ? .caption2.bold() : .subheadline.bold())
+            .font(.system(compact ? .caption2 : .subheadline, design: .rounded, weight: .bold))
             .monospacedDigit()
             .foregroundStyle(.white)
-            .padding(.horizontal, compact ? 6 : 10)
+            .frame(minWidth: compact ? 26 : 34)
+            .padding(.horizontal, compact ? 5 : 8)
             .padding(.vertical, compact ? 3 : 5)
             .background(color, in: Capsule())
     }

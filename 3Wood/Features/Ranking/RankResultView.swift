@@ -27,10 +27,8 @@ struct RankResultView: View {
                 onDone()
             } label: {
                 Text("Done")
-                    .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
+            .buttonStyle(.primary)
         }
         .padding()
     }

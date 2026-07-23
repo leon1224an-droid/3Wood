@@ -95,11 +95,8 @@ struct CourseDetailView: View {
                 } label: {
                     Label(myRanking == nil ? "Log this course" : "Update my ranking",
                           systemImage: "plus.circle.fill")
-                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .tint(Color.fairwayGreen)
+                .buttonStyle(.primary)
 
                 reviewsSection
 
