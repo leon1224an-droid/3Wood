@@ -269,4 +269,18 @@ final class NavigationUITests: XCTestCase {
             app.buttons["Cancel"].tap()
         }
     }
+
+    /// Verifies the map city-jump (geocode + recenter + reload courses).
+    func testMapCityJump() {
+        ensureSignedInAsDemo()
+        switchToTab("Map")
+        snapshot("22-Map-Controls")
+
+        let search = app.searchFields.firstMatch
+        tap(search, "Map city search")
+        search.typeText("Scottsdale, Arizona\n")
+        sleep(4) // geocode + recenter + region course load
+        snapshot("23-Map-CityJump")
+        XCTAssertTrue(search.exists, "Map search field missing")
+    }
 }

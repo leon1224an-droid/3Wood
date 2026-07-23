@@ -40,6 +40,7 @@ struct CourseMapView: View {
     @State private var viewModel = MapViewModel()
     @State private var mode: ViewMode = .map
     @State private var typeFilter: CourseTypeFilter = .all
+    @State private var citySearch = ""
     @State private var position: MapCameraPosition = .region(
         MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: 39.8, longitude: -98.6),
@@ -61,6 +62,9 @@ struct CourseMapView: View {
             }
             .navigationTitle("Map")
             .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $citySearch, placement: .navigationBarDrawer(displayMode: .always),
+                        prompt: "Jump to a city")
+            .onSubmit(of: .search) { Task { await jumpToPlace(citySearch) } }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { stateMenu }
                 ToolbarItem(placement: .topBarTrailing) { filterMenu }
@@ -74,6 +78,7 @@ struct CourseMapView: View {
 
     private var mapView: some View {
         Map(position: $position) {
+            UserAnnotation()
             // Only draw pins once zoomed in enough — at continental zoom the
             // hundreds of overlapping badges read as dark blobs.
             if !viewModel.showZoomHint {
@@ -85,6 +90,10 @@ struct CourseMapView: View {
                     }
                 }
             }
+        }
+        .mapControls {
+            MapUserLocationButton()
+            MapCompass()
         }
         .onMapCameraChange(frequency: .onEnd) { context in
             viewModel.regionChanged(context.region)
@@ -187,6 +196,24 @@ struct CourseMapView: View {
             span: MKCoordinateSpan(latitudeDelta: max(maxLat - minLat, 0.2) * 1.2,
                                    longitudeDelta: max(maxLng - minLng, 0.2) * 1.2)
         )
+        position = .region(region)
+        viewModel.regionChanged(region)
+    }
+
+    /// Geocode a typed city/place and recenter the map there.
+    private func jumpToPlace(_ query: String) async {
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        let request = MKLocalSearch.Request()
+        request.naturalLanguageQuery = trimmed
+        request.resultTypes = [.address, .pointOfInterest]
+        guard let response = try? await MKLocalSearch(request: request).start(),
+              let item = response.mapItems.first else { return }
+        let region = MKCoordinateRegion(
+            center: item.placemark.coordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.4, longitudeDelta: 0.4)
+        )
+        mode = .map
         position = .region(region)
         viewModel.regionChanged(region)
     }
