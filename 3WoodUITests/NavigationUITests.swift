@@ -26,6 +26,18 @@ final class NavigationUITests: XCTestCase {
         element.tap()
     }
 
+    /// Switch tabs reliably. The very first tab switch right after programmatic
+    /// sign-in can be dropped, so tap until the tab reports selected.
+    private func switchToTab(_ name: String) {
+        let tab = app.tabBars.buttons[name]
+        XCTAssertTrue(tab.waitForExistence(timeout: timeout), "Missing tab: \(name)")
+        for _ in 0..<3 where !tab.isSelected {
+            tab.tap()
+            _ = tab.waitForExistence(timeout: 1)
+        }
+        XCTAssertTrue(tab.isSelected, "Could not switch to \(name) tab")
+    }
+
     /// Land signed in as birdie_ben (rich demo data), regardless of prior state.
     private func ensureSignedInAsDemo() {
         // If a session is already active, sign out first to reach the welcome screen.
@@ -58,7 +70,7 @@ final class NavigationUITests: XCTestCase {
         ensureSignedInAsDemo()
 
         // --- Lists: Played ---
-        tap(app.tabBars.buttons["Lists"], "Lists tab")
+        switchToTab("Lists")
         XCTAssertTrue(app.navigationBars["My Courses"].waitForExistence(timeout: timeout))
         snapshot("01-Lists-Played")
 
@@ -69,7 +81,7 @@ final class NavigationUITests: XCTestCase {
         tap(app.segmentedControls.buttons["Played"], "Played segment")
 
         // --- Search ---
-        tap(app.tabBars.buttons["Search"], "Search tab")
+        switchToTab("Search")
         XCTAssertTrue(app.navigationBars["Search"].waitForExistence(timeout: timeout))
         let searchField = app.searchFields.firstMatch
         tap(searchField, "Search field")
@@ -86,13 +98,13 @@ final class NavigationUITests: XCTestCase {
         app.navigationBars.buttons.element(boundBy: 0).tap() // back
 
         // --- Map ---
-        tap(app.tabBars.buttons["Map"], "Map tab")
+        switchToTab("Map")
         XCTAssertTrue(app.navigationBars["Map"].waitForExistence(timeout: timeout))
         sleep(2) // let pins load
         snapshot("05-Map")
 
         // --- Profile ---
-        tap(app.tabBars.buttons["Profile"], "Profile tab")
+        switchToTab("Profile")
         XCTAssertTrue(app.navigationBars["Profile"].waitForExistence(timeout: timeout))
         snapshot("06-Profile")
 
@@ -130,7 +142,7 @@ final class NavigationUITests: XCTestCase {
     /// Exercises the ranking-comparison flow through the UI, start to finish.
     func testLogCourseFlow() {
         ensureSignedInAsDemo()
-        tap(app.tabBars.buttons["Lists"], "Lists tab")
+        switchToTab("Lists")
 
         // Open the log flow via the + button.
         tap(app.navigationBars.buttons["Add"], "Add (+) button")
@@ -175,7 +187,7 @@ final class NavigationUITests: XCTestCase {
         ensureSignedInAsDemo()
 
         // Played row → course detail.
-        tap(app.tabBars.buttons["Lists"], "Lists tab")
+        switchToTab("Lists")
         let firstRow = app.cells.element(boundBy: 0)
         XCTAssertTrue(firstRow.waitForExistence(timeout: timeout), "Played list has no rows")
         firstRow.tap()
@@ -185,7 +197,7 @@ final class NavigationUITests: XCTestCase {
         goBack()
 
         // Profile → Following list.
-        tap(app.tabBars.buttons["Profile"], "Profile tab")
+        switchToTab("Profile")
         tap(app.staticTexts["Following"], "Following stat")
         XCTAssertTrue(app.navigationBars["Following"].waitForExistence(timeout: timeout),
                       "Following stat did not open the people list")
@@ -194,7 +206,7 @@ final class NavigationUITests: XCTestCase {
         snapshot("15-Following-List")
 
         // Map → list toggle + filter.
-        tap(app.tabBars.buttons["Map"], "Map tab")
+        switchToTab("Map")
         sleep(2)
         tap(app.buttons["mapModeToggle"], "Map/List toggle")
         XCTAssertTrue(app.cells.element(boundBy: 0).waitForExistence(timeout: timeout),
@@ -203,5 +215,27 @@ final class NavigationUITests: XCTestCase {
         tap(app.buttons["mapFilter"], "Map filter menu")
         tap(app.buttons["Private"], "Private filter option")
         snapshot("17-Map-Filtered")
+    }
+
+    /// Verifies the activity feed and the leaderboard.
+    func testFeedAndLeaderboard() {
+        ensureSignedInAsDemo()
+
+        switchToTab("Feed")
+        XCTAssertTrue(app.navigationBars["3Wood"].waitForExistence(timeout: timeout),
+                      "Feed did not load")
+        XCTAssertTrue(app.cells.element(boundBy: 0).waitForExistence(timeout: timeout),
+                      "Feed has no activity")
+        snapshot("18-Feed")
+
+        tap(app.buttons["leaderboardButton"], "Leaderboard button")
+        if !app.navigationBars["Leaderboard"].waitForExistence(timeout: 6) {
+            app.buttons["leaderboardButton"].tap() // retry a dropped first tap
+        }
+        XCTAssertTrue(app.navigationBars["Leaderboard"].waitForExistence(timeout: timeout),
+                      "Leaderboard did not open")
+        XCTAssertTrue(app.cells.element(boundBy: 0).waitForExistence(timeout: timeout),
+                      "Leaderboard is empty")
+        snapshot("19-Leaderboard")
     }
 }

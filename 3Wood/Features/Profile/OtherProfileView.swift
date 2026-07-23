@@ -61,8 +61,12 @@ struct OtherProfileView: View {
         .task {
             async let statsTask = SocialRepo.stats(of: person.id)
             async let rankedTask = SocialRepo.rankedCourses(of: person.id)
+            async let followingTask = SocialRepo.isFollowing(person.id)
             stats = try? await statsTask
             ranked = (try? await rankedTask) ?? []
+            if let following = try? await followingTask {
+                person.isFollowing = following
+            }
         }
     }
 }

@@ -54,4 +54,17 @@ enum SocialRepo {
     static func following(of userID: UUID) async throws -> [ProfileSummary] {
         try await supa.rpc("following", params: ["p_user_id": userID]).execute().value
     }
+
+    /// Whether the current user follows `userID` — used to show an accurate
+    /// follow button when arriving at a profile from the feed or leaderboard.
+    static func isFollowing(_ userID: UUID) async throws -> Bool {
+        guard let me = supa.auth.currentSession?.user.id else { return false }
+        let rows: [[String: String]] = try await supa.from("follows")
+            .select("followee_id")
+            .eq("follower_id", value: me)
+            .eq("followee_id", value: userID)
+            .execute()
+            .value
+        return !rows.isEmpty
+    }
 }
