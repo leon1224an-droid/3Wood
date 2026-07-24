@@ -31,6 +31,7 @@ struct RankResultView: View {
             .buttonStyle(.primary)
         }
         .padding()
+        .creamScreen()
     }
 }
 

@@ -23,11 +23,14 @@ struct FeedView: View {
                         NavigationLink(value: item) {
                             FeedRow(item: item)
                         }
+                        .listRowBackground(Color.clear)
+                        .listRowSeparatorTint(Color.sand)
                     }
                     .listStyle(.plain)
                     .refreshable { await reload() }
                 }
             }
+            .creamScreen()
             .navigationTitle("3Wood")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

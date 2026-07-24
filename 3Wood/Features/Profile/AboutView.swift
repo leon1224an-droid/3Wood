@@ -33,6 +33,7 @@ struct AboutView: View {
                 Link("supabase-swift", destination: URL(string: "https://github.com/supabase/supabase-swift")!)
             }
         }
+        .creamScreen()
         .navigationTitle("About")
         .navigationBarTitleDisplayMode(.inline)
     }

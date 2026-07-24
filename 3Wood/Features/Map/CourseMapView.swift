@@ -147,9 +147,12 @@ struct CourseMapView: View {
                         NavigationLink(value: course) {
                             CourseRow(course: course)
                         }
+                        .listRowBackground(Color.clear)
+                        .listRowSeparatorTint(Color.sand)
                     }
                 }
                 .listStyle(.plain)
+                .creamScreen()
             }
         }
     }

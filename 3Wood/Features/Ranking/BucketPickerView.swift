@@ -16,25 +16,29 @@ struct BucketPickerView: View {
                     Button {
                         onPick(bucket)
                     } label: {
-                        Label(bucket.label, systemImage: bucket.systemImage)
+                        Text(bucket.label)
                             .font(.headline)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
+                            .padding(.vertical, 15)
+                            .background(color(for: bucket),
+                                        in: RoundedRectangle(cornerRadius: 14))
+                            .foregroundStyle(bucket == .fine ? Color.inkOnGold : .white)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(color(for: bucket))
+                    .buttonStyle(.plain)
                 }
             }
             Spacer()
         }
         .padding()
+        .creamScreen()
     }
 
+    // Flat buckets in the same colors as the score badges they produce.
     private func color(for bucket: Bucket) -> Color {
         switch bucket {
         case .liked: .fairwayGreen
-        case .fine: .orange
-        case .disliked: .red
+        case .fine: .sunriseGold
+        case .disliked: .clayRed
         }
     }
 }

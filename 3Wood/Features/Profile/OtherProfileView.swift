@@ -53,6 +53,7 @@ struct OtherProfileView: View {
                 }
             }
         }
+        .creamScreen()
         .navigationTitle("@\(person.username)")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(for: RankedCourse.self) { ranked in

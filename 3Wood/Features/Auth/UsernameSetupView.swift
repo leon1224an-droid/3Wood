@@ -29,7 +29,7 @@ struct UsernameSetupView: View {
 
                 if let errorMessage {
                     Section {
-                        Text(errorMessage).foregroundStyle(.red)
+                        Text(errorMessage).foregroundStyle(Color.clayRed)
                     }
                 }
 
@@ -44,6 +44,7 @@ struct UsernameSetupView: View {
                 }
                 .disabled(isSubmitting || !isValid)
             }
+            .creamScreen()
             .navigationTitle("Welcome!")
         }
     }

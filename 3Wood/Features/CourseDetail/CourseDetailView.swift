@@ -71,7 +71,7 @@ struct CourseDetailView: View {
                     ScoreBadge(score: course.avgScore)
                 }
                 .padding()
-                .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
+                .card()
 
                 if !friendScores.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
@@ -114,6 +114,7 @@ struct CourseDetailView: View {
             }
             .padding()
         }
+        .creamScreen()
         .navigationTitle(course.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -179,7 +180,7 @@ struct CourseDetailView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding()
-                    .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
+                    .card()
                 }
             }
         }

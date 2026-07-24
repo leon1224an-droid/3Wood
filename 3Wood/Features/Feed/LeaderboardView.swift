@@ -33,7 +33,8 @@ struct LeaderboardView: View {
                             .font(.caption.bold())
                             .foregroundStyle(.tertiary)
                     }
-                    .listRowBackground(entry.isMe ? Color.fairwayGreen.opacity(0.12) : nil)
+                    .listRowBackground(entry.isMe ? Color.fairwayGreen.opacity(0.12) : Color.clear)
+                    .listRowSeparatorTint(Color.sand)
                     .contentShape(Rectangle())
                     .onTapGesture {
                         selectedPerson = ProfileSummary(
@@ -45,6 +46,7 @@ struct LeaderboardView: View {
                 .listStyle(.plain)
             }
         }
+        .creamScreen()
         .navigationTitle("Leaderboard")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $selectedPerson) { person in
@@ -58,9 +60,9 @@ struct LeaderboardView: View {
 
     private func medalColor(_ rank: Int) -> Color {
         switch rank {
-        case 1: Color(red: 0.85, green: 0.65, blue: 0.13) // gold
-        case 2: Color(red: 0.6, green: 0.6, blue: 0.62)   // silver
-        case 3: Color(red: 0.72, green: 0.45, blue: 0.2)  // bronze
+        case 1: .medalGold
+        case 2: .medalSilver
+        case 3: .medalBronze
         default: .secondary
         }
     }

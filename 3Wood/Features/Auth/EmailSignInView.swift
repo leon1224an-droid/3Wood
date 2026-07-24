@@ -37,7 +37,7 @@ struct EmailSignInView: View {
 
             if let errorMessage {
                 Section {
-                    Text(errorMessage).foregroundStyle(.red)
+                    Text(errorMessage).foregroundStyle(Color.clayRed)
                 }
             }
 
@@ -52,6 +52,7 @@ struct EmailSignInView: View {
             }
             .disabled(isSubmitting || email.isEmpty || password.count < 6)
         }
+        .creamScreen()
         .navigationTitle(mode.title)
         .navigationBarTitleDisplayMode(.inline)
     }

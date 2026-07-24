@@ -91,10 +91,13 @@ struct PeopleListView: View {
                     }
                     .contentShape(Rectangle())
                     .onTapGesture { selectedPerson = person }
+                    .listRowBackground(Color.clear)
+                    .listRowSeparatorTint(Color.sand)
                 }
                 .listStyle(.plain)
             }
         }
+        .creamScreen()
         .navigationTitle(mode.title)
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $selectedPerson) { person in

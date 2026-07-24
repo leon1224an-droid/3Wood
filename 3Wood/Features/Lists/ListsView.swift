@@ -28,6 +28,7 @@ struct ListsView: View {
                 case .wantToPlay: wantToPlayList
                 }
             }
+            .creamScreen()
             .navigationTitle("My Courses")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
@@ -86,6 +87,8 @@ struct ListsView: View {
                             ScoreBadge(score: course.score)
                         }
                     }
+                    .listRowBackground(Color.clear)
+                    .listRowSeparatorTint(Color.sand)
                 }
             }
             .listStyle(.plain)
@@ -106,6 +109,8 @@ struct ListsView: View {
                 NavigationLink(value: course) {
                     CourseRow(course: course)
                 }
+                .listRowBackground(Color.clear)
+                .listRowSeparatorTint(Color.sand)
             }
             .listStyle(.plain)
             .refreshable { await reload() }

@@ -53,6 +53,7 @@ struct LogCourseFlow: View {
                     }
                 }
             }
+            .creamScreen()
             .navigationTitle(model.step.isDone ? "All set!" : "Log a course")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -157,6 +158,8 @@ struct LogCoursePickerView: View {
                 CourseRow(course: course)
             }
             .foregroundStyle(.primary)
+            .listRowBackground(Color.clear)
+            .listRowSeparatorTint(Color.sand)
         }
         .listStyle(.plain)
         .searchable(text: $viewModel.query, prompt: "Which course did you play?")

@@ -43,14 +43,17 @@ struct ProfileView: View {
                 }
 
                 Section {
-                    Button("Sign out", role: .destructive) {
+                    Button("Sign out") {
                         Task { await session.signOut() }
                     }
-                    Button("Delete account", role: .destructive) {
+                    .foregroundStyle(Color.clayRed)
+                    Button("Delete account") {
                         isConfirmingDelete = true
                     }
+                    .foregroundStyle(Color.clayRed)
                 }
             }
+            .creamScreen()
             .navigationTitle("Profile")
             .confirmationDialog(
                 "Delete your account?",

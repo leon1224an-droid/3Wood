@@ -45,6 +45,7 @@ struct ComparisonView: View {
                 .foregroundStyle(.tertiary)
         }
         .padding()
+        .creamScreen()
     }
 
     private func comparisonCard(
@@ -69,7 +70,11 @@ struct ComparisonView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 28)
-            .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 16))
+            .background(Color(.systemBackground).opacity(0.6), in: RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(Color.sand, lineWidth: 1)
+            )
         }
         .buttonStyle(.plain)
     }

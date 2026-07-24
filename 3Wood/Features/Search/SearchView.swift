@@ -23,10 +23,13 @@ struct SearchView: View {
                         NavigationLink(value: course) {
                             CourseRow(course: course)
                         }
+                        .listRowBackground(Color.clear)
+                        .listRowSeparatorTint(Color.sand)
                     }
                     .listStyle(.plain)
                 }
             }
+            .creamScreen()
             .navigationTitle("Search")
             .searchable(text: $viewModel.query, prompt: "Course name or city")
             .navigationDestination(for: Course.self) { course in
@@ -51,10 +54,10 @@ struct CourseRow: View {
                     if let tag = course.shortType {
                         Text(tag)
                             .font(.caption2.weight(.medium))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.darkPine)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
-                            .background(.quaternary, in: Capsule())
+                            .background(Color.sand, in: Capsule())
                     }
                 }
             }

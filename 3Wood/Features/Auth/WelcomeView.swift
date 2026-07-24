@@ -6,10 +6,8 @@ struct WelcomeView: View {
             VStack(spacing: 16) {
                 Spacer()
 
-                Image(systemName: "figure.golf")
-                    .font(.system(size: 72))
-                    .foregroundStyle(Color.fairwayGreen)
-                Wordmark(size: 44)
+                // The wordmark IS the brand moment — no stock glyph above it.
+                Wordmark(size: 56)
                 Text("Rank every course you've played.")
                     .foregroundStyle(.secondary)
 
@@ -20,15 +18,16 @@ struct WelcomeView: View {
                 NavigationLink("Create account") {
                     EmailSignInView(mode: .signUp)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                .buttonStyle(.primary)
 
                 NavigationLink("Sign in") {
                     EmailSignInView(mode: .signIn)
                 }
                 .controlSize(.large)
+                .tint(Color.fairwayGreen)
             }
             .padding()
+            .creamScreen()
         }
     }
 }
