@@ -73,6 +73,7 @@ struct FindFriendsView: View {
 
 struct FollowButton: View {
     @Binding var person: ProfileSummary
+    @State private var failed = false
 
     var body: some View {
         Button(person.isFollowing ? "Following" : "Follow") {
@@ -85,12 +86,17 @@ struct FollowButton: View {
                     }
                     person.isFollowing.toggle()
                 } catch {
-                    // State unchanged on failure; next search reflects reality.
+                    failed = true
                 }
             }
         }
         .buttonStyle(.borderless)
         .tint(person.isFollowing ? .secondary : Color.fairwayGreen)
         .controlSize(.small)
+        .alert("Couldn't update follow", isPresented: $failed) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Check your connection and try again.")
+        }
     }
 }

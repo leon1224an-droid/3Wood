@@ -8,6 +8,13 @@ struct WriteReviewSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var body_ = ""
     @State private var isSaving = false
+    @State private var saveError: String?
+
+    /// Matches the reviews table check constraint (1–2000 characters).
+    private let maxLength = 2000
+    private var trimmed: String {
+        body_.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 
     var body: some View {
         NavigationStack {
@@ -25,6 +32,13 @@ struct WriteReviewSheet: View {
                                 .allowsHitTesting(false)
                         }
                     }
+                if trimmed.count > maxLength - 200 {
+                    Text("\(trimmed.count) / \(maxLength)")
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(trimmed.count > maxLength ? Color.clayRed : .secondary)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .padding(.top, 4)
+                }
                 Spacer()
                 if existing != nil {
                     Button("Delete review") {
@@ -44,23 +58,31 @@ struct WriteReviewSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { Task { await save() } }
-                        .disabled(body_.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
+                        .disabled(trimmed.isEmpty || trimmed.count > maxLength || isSaving)
                 }
             }
             .onAppear { body_ = existing ?? "" }
+            .alert("Couldn't save review", isPresented: .init(
+                get: { saveError != nil },
+                set: { if !$0 { saveError = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(saveError ?? "")
+            }
         }
     }
 
     private func save() async {
         isSaving = true
         defer { isSaving = false }
-        let text = body_.trimmingCharacters(in: .whitespacesAndNewlines)
         do {
-            try await ReviewRepo.upsert(courseID: courseID, body: text)
+            try await ReviewRepo.upsert(courseID: courseID, body: trimmed)
             onSaved()
             dismiss()
         } catch {
             // Keep the sheet open so the text isn't lost.
+            saveError = error.localizedDescription
         }
     }
 
@@ -69,6 +91,8 @@ struct WriteReviewSheet: View {
             try await ReviewRepo.delete(courseID: courseID)
             onSaved()
             dismiss()
-        } catch {}
+        } catch {
+            saveError = error.localizedDescription
+        }
     }
 }

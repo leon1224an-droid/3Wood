@@ -12,18 +12,21 @@ struct CourseDetailByID: View {
             if let course {
                 CourseDetailView(course: course)
             } else if failed {
-                ContentUnavailableView("Couldn't load course", systemImage: "exclamationmark.triangle")
+                LoadFailedView { await load() }
             } else {
                 ProgressView()
             }
         }
-        .task {
-            do {
-                course = try await CourseRepo.course(id: courseID)
-                failed = course == nil
-            } catch {
-                failed = true
-            }
+        .task { await load() }
+    }
+
+    private func load() async {
+        failed = false
+        do {
+            course = try await CourseRepo.course(id: courseID)
+            failed = course == nil
+        } catch {
+            failed = true
         }
     }
 }

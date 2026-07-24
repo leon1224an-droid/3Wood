@@ -3,12 +3,15 @@ import SwiftUI
 struct FeedView: View {
     @State private var items: [FeedItem] = []
     @State private var isLoading = true
+    @State private var loadFailed = false
 
     var body: some View {
         NavigationStack {
             Group {
                 if isLoading {
                     ProgressView()
+                } else if loadFailed, items.isEmpty {
+                    LoadFailedView { await reload() }
                 } else if items.isEmpty {
                     ContentUnavailableView {
                         Label("Your feed is quiet", systemImage: "figure.golf")
@@ -55,7 +58,12 @@ struct FeedView: View {
     }
 
     private func reload() async {
-        items = (try? await FeedRepo.feed()) ?? items
+        do {
+            items = try await FeedRepo.feed()
+            loadFailed = false
+        } catch {
+            loadFailed = true
+        }
         isLoading = false
     }
 }

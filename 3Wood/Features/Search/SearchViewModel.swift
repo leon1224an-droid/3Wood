@@ -8,8 +8,13 @@ final class SearchViewModel {
     }
     private(set) var results: [Course] = []
     private(set) var isSearching = false
+    private(set) var searchFailed = false
 
     private var searchTask: Task<Void, Never>?
+
+    func retry() {
+        scheduleSearch()
+    }
 
     private func scheduleSearch() {
         searchTask?.cancel()
@@ -17,6 +22,7 @@ final class SearchViewModel {
         guard trimmed.count >= 2 else {
             results = []
             isSearching = false
+            searchFailed = false
             return
         }
         isSearching = true
@@ -24,9 +30,15 @@ final class SearchViewModel {
             // Debounce so we search once per pause, not per keystroke.
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled else { return }
-            let found = (try? await CourseRepo.search(trimmed)) ?? []
-            guard !Task.isCancelled else { return }
-            results = found
+            do {
+                let found = try await CourseRepo.search(trimmed)
+                guard !Task.isCancelled else { return }
+                results = found
+                searchFailed = false
+            } catch {
+                guard !Task.isCancelled else { return }
+                searchFailed = true
+            }
             isSearching = false
         }
     }

@@ -4,11 +4,14 @@ struct LeaderboardView: View {
     @State private var entries: [LeaderboardEntry] = []
     @State private var selectedPerson: ProfileSummary?
     @State private var isLoading = true
+    @State private var loadFailed = false
 
     var body: some View {
         Group {
             if isLoading {
                 ProgressView()
+            } else if loadFailed, entries.isEmpty {
+                LoadFailedView { await reload() }
             } else if entries.isEmpty {
                 ContentUnavailableView("No rankings yet", systemImage: "trophy")
             } else {
@@ -52,10 +55,17 @@ struct LeaderboardView: View {
         .navigationDestination(item: $selectedPerson) { person in
             OtherProfileView(person: person)
         }
-        .task {
-            entries = (try? await FeedRepo.leaderboard()) ?? []
-            isLoading = false
+        .task { await reload() }
+    }
+
+    private func reload() async {
+        do {
+            entries = try await FeedRepo.leaderboard()
+            loadFailed = false
+        } catch {
+            loadFailed = true
         }
+        isLoading = false
     }
 
     private func medalColor(_ rank: Int) -> Color {

@@ -10,8 +10,14 @@ struct CourseDetailView: View {
     @State private var friendScores: [FriendScore] = []
     @State private var reviews: [Review] = []
     @State private var isWritingReview = false
+    @State private var freshCourse: Course?
+    @State private var isConfirmingRemoval = false
+    @State private var actionError: String?
 
     private var myReview: Review? { reviews.first(where: \.isMine) }
+    /// Community numbers refreshed after ranking; falls back to the passed-in
+    /// snapshot so the screen never says "no ratings" over a fresh one.
+    private var live: Course { freshCourse ?? course }
 
     var body: some View {
         ScrollView {
@@ -57,8 +63,8 @@ struct CourseDetailView: View {
                         Text("Community rating")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        if course.ratingCount > 0 {
-                            Text("^[\(course.ratingCount) rating](inflect: true)")
+                        if live.ratingCount > 0 {
+                            Text("^[\(live.ratingCount) rating](inflect: true)")
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
                         } else {
@@ -68,7 +74,7 @@ struct CourseDetailView: View {
                         }
                     }
                     Spacer()
-                    ScoreBadge(score: course.avgScore)
+                    ScoreBadge(score: live.avgScore)
                 }
                 .padding()
                 .card()
@@ -97,6 +103,15 @@ struct CourseDetailView: View {
                           systemImage: "plus.circle.fill")
                 }
                 .buttonStyle(.primary)
+
+                if myRanking != nil {
+                    Button("Remove from my courses") {
+                        isConfirmingRemoval = true
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(Color.clayRed)
+                    .frame(maxWidth: .infinity)
+                }
 
                 reviewsSection
 
@@ -136,6 +151,25 @@ struct CourseDetailView: View {
             WriteReviewSheet(courseID: course.id, existing: myReview?.body) {
                 Task { await reloadReviews() }
             }
+        }
+        .confirmationDialog(
+            "Remove \(course.name)?",
+            isPresented: $isConfirmingRemoval,
+            titleVisibility: .visible
+        ) {
+            Button("Remove from Played", role: .destructive) {
+                Task { await removeRanking() }
+            }
+        } message: {
+            Text("This removes it from your ranking and rescores the rest of the bucket.")
+        }
+        .alert("Something went wrong", isPresented: .init(
+            get: { actionError != nil },
+            set: { if !$0 { actionError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(actionError ?? "")
         }
         .task { await reloadMyRanking() }
     }
@@ -191,10 +225,21 @@ struct CourseDetailView: View {
         async let bookmarkTask = WantToPlayRepo.contains(courseID: course.id)
         async let friendsTask = SocialRepo.friendScores(courseID: course.id)
         async let reviewsTask = ReviewRepo.reviews(courseID: course.id)
+        async let courseTask = CourseRepo.course(id: course.id)
         myRanking = (try? await mineTask)?.first { $0.courseID == course.id }
         isBookmarked = (try? await bookmarkTask) ?? false
         friendScores = (try? await friendsTask) ?? []
         reviews = (try? await reviewsTask) ?? []
+        freshCourse = (try? await courseTask) ?? freshCourse
+    }
+
+    private func removeRanking() async {
+        do {
+            try await RankingRepo.remove(courseID: course.id)
+            await reloadMyRanking()
+        } catch {
+            actionError = "Couldn't remove this course. \(error.localizedDescription)"
+        }
     }
 
     private func reloadReviews() async {
@@ -210,7 +255,7 @@ struct CourseDetailView: View {
             }
             isBookmarked.toggle()
         } catch {
-            // Leave the icon as-is; the next reload reflects reality.
+            actionError = "Couldn't update Want to Play. \(error.localizedDescription)"
         }
     }
 }

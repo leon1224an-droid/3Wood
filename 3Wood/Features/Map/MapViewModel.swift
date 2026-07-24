@@ -18,13 +18,14 @@ final class MapViewModel {
         fetchTask = Task {
             try? await Task.sleep(for: .milliseconds(250))
             guard !Task.isCancelled else { return }
-            let found = (try? await CourseRepo.inRegion(
+            // On failure keep the pins already drawn — replacing them with an
+            // empty array would wipe the map over a transient network blip.
+            guard let found = try? await CourseRepo.inRegion(
                 minLat: region.center.latitude - region.span.latitudeDelta / 2,
                 minLng: region.center.longitude - region.span.longitudeDelta / 2,
                 maxLat: region.center.latitude + region.span.latitudeDelta / 2,
                 maxLng: region.center.longitude + region.span.longitudeDelta / 2
-            )) ?? []
-            guard !Task.isCancelled else { return }
+            ), !Task.isCancelled else { return }
             courses = found
         }
     }

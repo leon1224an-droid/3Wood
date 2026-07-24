@@ -9,6 +9,8 @@ struct SearchView: View {
                 if viewModel.results.isEmpty {
                     if viewModel.isSearching {
                         ProgressView()
+                    } else if viewModel.searchFailed {
+                        LoadFailedView { viewModel.retry() }
                     } else if viewModel.query.count >= 2 {
                         ContentUnavailableView.search(text: viewModel.query)
                     } else {

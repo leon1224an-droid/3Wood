@@ -11,6 +11,9 @@ final class SessionStore {
         case signedOut
         case needsProfile(userID: UUID)
         case signedIn(Profile)
+        /// A session exists but the profile fetch failed (offline, backend
+        /// blip). Never shown as signed-out — the user has an account.
+        case failed(userID: UUID)
     }
 
     private(set) var state: State = .loading
@@ -38,6 +41,13 @@ final class SessionStore {
         state = .signedIn(profile)
     }
 
+    /// Retry after a failed profile resolution (e.g. connectivity returned).
+    func retryResolve() async {
+        guard case .failed(let userID) = state else { return }
+        state = .loading
+        await resolveProfile(userID: userID)
+    }
+
     func signOut() async {
         try? await supa.auth.signOut()
     }
@@ -50,8 +60,9 @@ final class SessionStore {
                 state = .needsProfile(userID: userID)
             }
         } catch {
-            // Couldn't reach the backend; treat as signed out so the user can retry.
-            state = .signedOut
+            // Couldn't reach the backend. The session is still valid — surface
+            // a retry screen rather than dumping the user on Welcome.
+            state = .failed(userID: userID)
         }
     }
 }

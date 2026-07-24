@@ -16,6 +16,15 @@ struct RootView: View {
                 UsernameSetupView(userID: userID)
             case .signedIn:
                 MainTabView()
+            case .failed:
+                VStack(spacing: 24) {
+                    Wordmark(size: 34)
+                    LoadFailedView(message: "You're signed in, but we couldn't reach the server.") {
+                        await session.retryResolve()
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+                .creamScreen()
             }
         }
         .task {

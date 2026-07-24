@@ -57,6 +57,7 @@ struct PeopleListView: View {
     @State private var people: [ProfileSummary] = []
     @State private var selectedPerson: ProfileSummary?
     @State private var isLoading = true
+    @State private var loadFailed = false
 
     private var myID: UUID? {
         if case .signedIn(let profile) = session.state { return profile.id }
@@ -67,6 +68,8 @@ struct PeopleListView: View {
         Group {
             if isLoading {
                 ProgressView()
+            } else if loadFailed, people.isEmpty {
+                LoadFailedView { await reload() }
             } else if people.isEmpty {
                 ContentUnavailableView(
                     mode == .followers ? "No followers yet" : "Not following anyone yet",
@@ -103,15 +106,18 @@ struct PeopleListView: View {
         .navigationDestination(item: $selectedPerson) { person in
             OtherProfileView(person: person)
         }
-        .task {
-            do {
-                people = mode == .followers
-                    ? try await SocialRepo.followers(of: userID)
-                    : try await SocialRepo.following(of: userID)
-            } catch {
-                people = []
-            }
-            isLoading = false
+        .task { await reload() }
+    }
+
+    private func reload() async {
+        do {
+            people = mode == .followers
+                ? try await SocialRepo.followers(of: userID)
+                : try await SocialRepo.following(of: userID)
+            loadFailed = false
+        } catch {
+            loadFailed = true
         }
+        isLoading = false
     }
 }
