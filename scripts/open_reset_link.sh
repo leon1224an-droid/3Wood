@@ -26,7 +26,12 @@ d = json.load(sys.stdin)
 body = d.get('HTML') or d.get('Text', '')
 m = re.search(r'href=\"([^\"]*type=recovery[^\"]*)\"', body) or \
     re.search(r'(https?://\S*type=recovery\S*)', body)
-print(html.unescape(m.group(1)) if m else '')")
+# Unescape HTML entities fully (bodies can double-escape, e.g. &amp;amp;) —
+# a literal '&amp;' in the URL mangles the query parameters.
+link = m.group(1) if m else ''
+while html.unescape(link) != link:
+    link = html.unescape(link)
+print(link)")
 
 if [ -z "$LINK" ]; then
   echo "Couldn't find a recovery link in message $ID." >&2
