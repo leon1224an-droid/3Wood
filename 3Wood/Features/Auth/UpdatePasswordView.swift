@@ -25,16 +25,21 @@ struct UpdatePasswordView: View {
                     }
                 }
 
-                Button {
-                    Task { await submit() }
-                } label: {
-                    if isSubmitting {
-                        ProgressView().frame(maxWidth: .infinity)
-                    } else {
-                        Text("Set new password").frame(maxWidth: .infinity)
+                Section {
+                    Button {
+                        Task { await submit() }
+                    } label: {
+                        if isSubmitting {
+                            ProgressView().tint(.white)
+                        } else {
+                            Text("Set new password")
+                        }
                     }
+                    .buttonStyle(.primary)
+                    .disabled(isSubmitting || password.count < 6)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
                 }
-                .disabled(isSubmitting || password.count < 6)
             }
             .creamScreen()
             .navigationTitle("New password")

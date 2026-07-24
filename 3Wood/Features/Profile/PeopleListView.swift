@@ -40,8 +40,9 @@ private struct StatItem: View {
 /// A followers/following list. Each row opens that user's profile; the follow
 /// button is hidden for your own row.
 struct PeopleListView: View {
-    enum Mode {
+    enum Mode: Identifiable {
         case followers, following
+        var id: Self { self }
         var title: String {
             switch self {
             case .followers: "Followers"

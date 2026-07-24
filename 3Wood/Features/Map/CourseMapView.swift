@@ -38,9 +38,11 @@ struct CourseMapView: View {
     enum ViewMode { case map, list }
 
     @State private var viewModel = MapViewModel()
+    @State private var searchModel = MapSearchModel()
     @State private var mode: ViewMode = .map
     @State private var typeFilter: CourseTypeFilter = .all
     @State private var citySearch = ""
+    @State private var isSearchPresented = false
     @State private var position: MapCameraPosition = .region(
         MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: 39.8, longitude: -98.6),
@@ -62,8 +64,48 @@ struct CourseMapView: View {
             }
             .navigationTitle("Map")
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $citySearch, placement: .navigationBarDrawer(displayMode: .always),
-                        prompt: "Jump to a city")
+            .searchable(text: $citySearch, isPresented: $isSearchPresented,
+                        placement: .navigationBarDrawer(displayMode: .always),
+                        prompt: "Search a city or course")
+            .onChange(of: citySearch) {
+                searchModel.update(query: citySearch)
+            }
+            .searchSuggestions {
+                if !searchModel.courses.isEmpty {
+                    Section("Courses") {
+                        ForEach(searchModel.courses) { course in
+                            Button {
+                                jumpToCourse(course)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(course.name).foregroundStyle(.primary)
+                                    Text(course.locationText)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+                if !searchModel.places.isEmpty {
+                    Section("Places") {
+                        ForEach(searchModel.places, id: \.self) { place in
+                            Button {
+                                Task { await jumpToCompletion(place) }
+                            } label: {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(place.title).foregroundStyle(.primary)
+                                    if !place.subtitle.isEmpty {
+                                        Text(place.subtitle)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             .onSubmit(of: .search) { Task { await jumpToPlace(citySearch) } }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { stateMenu }
@@ -213,6 +255,34 @@ struct CourseMapView: View {
             span: MKCoordinateSpan(latitudeDelta: max(maxLat - minLat, 0.2) * 1.2,
                                    longitudeDelta: max(maxLng - minLng, 0.2) * 1.2)
         )
+        position = .region(region)
+        viewModel.regionChanged(region)
+    }
+
+    /// Recenter on a suggested course.
+    private func jumpToCourse(_ course: Course) {
+        isSearchPresented = false
+        citySearch = course.name
+        let region = MKCoordinateRegion(
+            center: course.coordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.15, longitudeDelta: 0.15)
+        )
+        mode = .map
+        position = .region(region)
+        viewModel.regionChanged(region)
+    }
+
+    /// Resolve a suggested place completion and recenter there.
+    private func jumpToCompletion(_ completion: MKLocalSearchCompletion) async {
+        isSearchPresented = false
+        citySearch = completion.title
+        guard let response = try? await MKLocalSearch(request: .init(completion: completion)).start(),
+              let item = response.mapItems.first else { return }
+        let region = MKCoordinateRegion(
+            center: item.placemark.coordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.4, longitudeDelta: 0.4)
+        )
+        mode = .map
         position = .region(region)
         viewModel.regionChanged(region)
     }

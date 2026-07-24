@@ -58,6 +58,8 @@ final class NavigationUITests: XCTestCase {
         tap(password, "Password field")
         password.typeText("testpass123")
 
+        snapshot("24-SignIn-Form")
+
         // The bottom "Sign in" submit button.
         let submit = app.buttons["Sign in"]
         tap(submit, "Sign in submit")
@@ -278,7 +280,10 @@ final class NavigationUITests: XCTestCase {
 
         let search = app.searchFields.firstMatch
         tap(search, "Map city search")
-        search.typeText("Scottsdale, Arizona\n")
+        search.typeText("Scottsdale")
+        sleep(2) // let course + place suggestions load
+        snapshot("25-Map-Suggestions")
+        search.typeText(", Arizona\n")
         sleep(4) // geocode + recenter + region course load
         snapshot("23-Map-CityJump")
         XCTAssertTrue(search.exists, "Map search field missing")

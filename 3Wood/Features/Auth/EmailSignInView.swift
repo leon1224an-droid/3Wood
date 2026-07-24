@@ -42,24 +42,31 @@ struct EmailSignInView: View {
                 }
             }
 
-            Button {
-                Task { await submit() }
-            } label: {
-                if isSubmitting {
-                    ProgressView().frame(maxWidth: .infinity)
-                } else {
-                    Text(mode.title).frame(maxWidth: .infinity)
+            Section {
+                Button {
+                    Task { await submit() }
+                } label: {
+                    if isSubmitting {
+                        ProgressView().tint(.white)
+                    } else {
+                        Text(mode.title)
+                    }
                 }
-            }
-            .disabled(isSubmitting || email.isEmpty || password.count < 6)
+                .buttonStyle(.primary)
+                .disabled(isSubmitting || email.isEmpty || password.count < 6)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets())
 
-            if mode == .signIn {
-                Button("Forgot password?") {
-                    Task { await sendReset() }
+                if mode == .signIn {
+                    Button("Forgot password?") {
+                        Task { await sendReset() }
+                    }
+                    .font(.subheadline)
+                    .tint(Color.fairwayGreen)
+                    .disabled(isSubmitting)
+                    .frame(maxWidth: .infinity)
+                    .listRowBackground(Color.clear)
                 }
-                .font(.subheadline)
-                .tint(Color.fairwayGreen)
-                .disabled(isSubmitting)
             }
         }
         .creamScreen()

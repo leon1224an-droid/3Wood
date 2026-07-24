@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct ThreeWoodApp: App {
     @State private var session = SessionStore()
+    @State private var nav = AppNavigation()
 
     init() {
         BrandFonts.register()
@@ -12,6 +13,7 @@ struct ThreeWoodApp: App {
         WindowGroup {
             RootView()
                 .environment(session)
+                .environment(nav)
         }
     }
 }

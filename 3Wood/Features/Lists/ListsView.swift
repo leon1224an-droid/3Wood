@@ -7,6 +7,7 @@ struct ListsView: View {
         var id: String { rawValue }
     }
 
+    @Environment(AppNavigation.self) private var nav
     @State private var segment: Segment = .played
     @State private var ranked: [RankedCourse] = []
     @State private var wantToPlay: [Course] = []
@@ -51,7 +52,15 @@ struct ListsView: View {
             }
             .task { await reload() }
             .onAppear {
+                // Adopt cross-tab requests (e.g. Profile's "Want to play" row).
+                segment = nav.listsSegment
                 Task { await reload() }
+            }
+            .onChange(of: nav.listsSegment) {
+                segment = nav.listsSegment
+            }
+            .onChange(of: segment) {
+                nav.listsSegment = segment
             }
             .confirmationDialog(
                 "Remove \(pendingRemoval?.name ?? "this course")?",

@@ -33,16 +33,21 @@ struct UsernameSetupView: View {
                     }
                 }
 
-                Button {
-                    Task { await submit() }
-                } label: {
-                    if isSubmitting {
-                        ProgressView().frame(maxWidth: .infinity)
-                    } else {
-                        Text("Let's golf").frame(maxWidth: .infinity)
+                Section {
+                    Button {
+                        Task { await submit() }
+                    } label: {
+                        if isSubmitting {
+                            ProgressView().tint(.white)
+                        } else {
+                            Text("Let's golf")
+                        }
                     }
+                    .buttonStyle(.primary)
+                    .disabled(isSubmitting || !isValid)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
                 }
-                .disabled(isSubmitting || !isValid)
             }
             .creamScreen()
             .navigationTitle("Welcome!")
