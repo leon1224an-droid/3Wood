@@ -144,8 +144,8 @@ final class NavigationUITests: XCTestCase {
         ensureSignedInAsDemo()
         switchToTab("Lists")
 
-        // Open the log flow via the + button.
-        tap(app.navigationBars.buttons["Add"], "Add (+) button")
+        // Open the log flow via the + button (labeled for VoiceOver).
+        tap(app.navigationBars.buttons["Log a course"], "Add (+) button")
 
         let picker = app.searchFields.firstMatch
         tap(picker, "Course picker search")
