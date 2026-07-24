@@ -41,6 +41,7 @@ struct ListsView: View {
                     } label: {
                         Image(systemName: "plus")
                     }
+                    .accessibilityLabel("Log a course")
                 }
             }
             .navigationDestination(for: Course.self) { course in

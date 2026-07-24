@@ -91,9 +91,11 @@ struct PeopleListView: View {
                         Image(systemName: "chevron.right")
                             .font(.caption.bold())
                             .foregroundStyle(.tertiary)
+                            .accessibilityHidden(true)
                     }
                     .contentShape(Rectangle())
                     .onTapGesture { selectedPerson = person }
+                    .personRowAccessibility(person: $person) { selectedPerson = person }
                     .listRowBackground(Color.clear)
                     .listRowSeparatorTint(Color.sand)
                 }

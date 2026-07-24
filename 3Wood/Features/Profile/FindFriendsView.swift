@@ -26,9 +26,11 @@ struct FindFriendsView: View {
                 Image(systemName: "chevron.right")
                     .font(.caption.bold())
                     .foregroundStyle(.tertiary)
+                    .accessibilityHidden(true)
             }
             .contentShape(Rectangle())
             .onTapGesture { selectedPerson = person }
+            .personRowAccessibility(person: $person) { selectedPerson = person }
             .listRowBackground(Color.clear)
             .listRowSeparatorTint(Color.sand)
         }
@@ -68,6 +70,34 @@ struct FindFriendsView: View {
             guard !Task.isCancelled else { return }
             results = found
         }
+    }
+}
+
+extension View {
+    /// VoiceOver support for people rows that navigate via a tap gesture:
+    /// exposes the row as one button that opens the profile, with
+    /// follow/unfollow as a custom action.
+    func personRowAccessibility(
+        person: Binding<ProfileSummary>, open: @escaping () -> Void
+    ) -> some View {
+        self
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityHint("Opens profile")
+            .accessibilityAction { open() }
+            .accessibilityAction(named: person.wrappedValue.isFollowing ? "Unfollow" : "Follow") {
+                Task {
+                    let p = person.wrappedValue
+                    do {
+                        if p.isFollowing {
+                            try await SocialRepo.unfollow(userID: p.id)
+                        } else {
+                            try await SocialRepo.follow(userID: p.id)
+                        }
+                        person.wrappedValue.isFollowing.toggle()
+                    } catch {}
+                }
+            }
     }
 }
 

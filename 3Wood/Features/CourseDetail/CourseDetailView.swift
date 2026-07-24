@@ -13,6 +13,7 @@ struct CourseDetailView: View {
     @State private var freshCourse: Course?
     @State private var isConfirmingRemoval = false
     @State private var actionError: String?
+    @State private var reportedReview: Review?
 
     private var myReview: Review? { reviews.first(where: \.isMine) }
     /// Community numbers refreshed after ranking; falls back to the passed-in
@@ -126,6 +127,7 @@ struct CourseDetailView: View {
                 .frame(height: 180)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .allowsHitTesting(false)
+                .accessibilityHidden(true)
             }
             .padding()
         }
@@ -140,6 +142,7 @@ struct CourseDetailView: View {
                     Image(systemName: isBookmarked ? "bookmark.fill" : "bookmark")
                 }
                 .tint(Color.fairwayGreen)
+                .accessibilityLabel(isBookmarked ? "Remove from Want to Play" : "Add to Want to Play")
             }
         }
         .fullScreenCover(isPresented: $isLoggingCourse, onDismiss: {
@@ -170,6 +173,24 @@ struct CourseDetailView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(actionError ?? "")
+        }
+        .confirmationDialog(
+            "Report @\(reportedReview?.username ?? "")'s review?",
+            isPresented: .init(
+                get: { reportedReview != nil },
+                set: { if !$0 { reportedReview = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            ForEach(ReportReason.allCases) { reason in
+                Button(reason.rawValue) {
+                    if let review = reportedReview {
+                        Task { await reportReview(review, reason: reason) }
+                    }
+                }
+            }
+        } message: {
+            Text("Reports are reviewed within 24 hours.")
         }
         .task { await reloadMyRanking() }
     }
@@ -215,6 +236,13 @@ struct CourseDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding()
                     .card()
+                    .contextMenu {
+                        if !review.isMine {
+                            Button("Report review", systemImage: "flag") {
+                                reportedReview = review
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -231,6 +259,17 @@ struct CourseDetailView: View {
         friendScores = (try? await friendsTask) ?? []
         reviews = (try? await reviewsTask) ?? []
         freshCourse = (try? await courseTask) ?? freshCourse
+    }
+
+    private func reportReview(_ review: Review, reason: ReportReason) async {
+        do {
+            try await ModerationRepo.report(
+                userID: review.userID, reviewCourseID: course.id, reason: reason.rawValue
+            )
+            actionError = "Report received. We review reports within 24 hours."
+        } catch {
+            actionError = "Couldn't send the report. \(error.localizedDescription)"
+        }
     }
 
     private func removeRanking() async {

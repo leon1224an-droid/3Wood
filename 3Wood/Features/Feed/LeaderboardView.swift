@@ -35,11 +35,21 @@ struct LeaderboardView: View {
                         Image(systemName: "chevron.right")
                             .font(.caption.bold())
                             .foregroundStyle(.tertiary)
+                            .accessibilityHidden(true)
                     }
                     .listRowBackground(entry.isMe ? Color.fairwayGreen.opacity(0.12) : Color.clear)
                     .listRowSeparatorTint(Color.sand)
                     .contentShape(Rectangle())
                     .onTapGesture {
+                        selectedPerson = ProfileSummary(
+                            id: entry.id, username: entry.username,
+                            displayName: entry.displayName, isFollowing: false
+                        )
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityHint("Opens profile")
+                    .accessibilityAction {
                         selectedPerson = ProfileSummary(
                             id: entry.id, username: entry.username,
                             displayName: entry.displayName, isFollowing: false

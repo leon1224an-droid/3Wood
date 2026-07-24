@@ -18,6 +18,10 @@ final class SessionStore {
 
     private(set) var state: State = .loading
 
+    /// Set when the user arrives via a password-recovery deep link; RootView
+    /// presents the new-password sheet while this is true.
+    var needsPasswordReset = false
+
     /// Runs for the lifetime of the root view, reacting to every auth change.
     func start() async {
         for await (event, session) in supa.auth.authStateChanges {
@@ -27,6 +31,11 @@ final class SessionStore {
                     await resolveProfile(userID: session.user.id)
                 } else {
                     state = .signedOut
+                }
+            case .passwordRecovery:
+                needsPasswordReset = true
+                if let session {
+                    await resolveProfile(userID: session.user.id)
                 }
             case .signedOut, .userDeleted:
                 state = .signedOut

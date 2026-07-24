@@ -25,6 +25,13 @@ struct WelcomeView: View {
                 }
                 .controlSize(.large)
                 .tint(Color.fairwayGreen)
+
+                Text("By continuing you agree to the [Terms](https://leon1224an-droid.github.io/3Wood/terms.html) and [Privacy Policy](https://leon1224an-droid.github.io/3Wood/privacy.html).")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .tint(Color.fairwayGreen)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 4)
             }
             .padding()
             .creamScreen()

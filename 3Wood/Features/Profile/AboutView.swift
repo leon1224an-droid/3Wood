@@ -29,6 +29,17 @@ struct AboutView: View {
                 Link("ODbL 1.0 license", destination: URL(string: "https://opendatacommons.org/licenses/odbl/1-0/")!)
             }
 
+            Section("Legal") {
+                Link("Privacy policy",
+                     destination: URL(string: "https://leon1224an-droid.github.io/3Wood/privacy.html")!)
+                Link("Terms of service",
+                     destination: URL(string: "https://leon1224an-droid.github.io/3Wood/terms.html")!)
+            }
+
+            Section("Support") {
+                Link("Contact support", destination: URL(string: "mailto:leon1224an@gmail.com")!)
+            }
+
             Section("Open source") {
                 Link("supabase-swift", destination: URL(string: "https://github.com/supabase/supabase-swift")!)
             }

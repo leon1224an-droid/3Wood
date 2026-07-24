@@ -163,6 +163,7 @@ struct CourseMapView: View {
         } label: {
             Image(systemName: mode == .map ? "list.bullet" : "map")
         }
+        .accessibilityLabel(mode == .map ? "Show as list" : "Show as map")
         .accessibilityIdentifier("mapModeToggle")
     }
 
@@ -174,6 +175,7 @@ struct CourseMapView: View {
         } label: {
             Image(systemName: typeFilter == .all ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
         }
+        .accessibilityLabel("Filter by course type")
         .accessibilityIdentifier("mapFilter")
     }
 
@@ -185,6 +187,7 @@ struct CourseMapView: View {
         } label: {
             Label("State", systemImage: "flag")
         }
+        .accessibilityLabel("Jump to a state")
     }
 
     /// Recenter the map and reload courses for the chosen state (works in both

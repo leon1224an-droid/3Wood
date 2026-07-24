@@ -47,6 +47,7 @@ struct FeedView: View {
                         Image(systemName: "trophy")
                     }
                     .tint(Color.fairwayGreen)
+                    .accessibilityLabel("Leaderboard")
                     .accessibilityIdentifier("leaderboardButton")
                 }
             }
@@ -76,6 +77,7 @@ private struct FeedRow: View {
             Image(systemName: item.isRanked ? "flag.checkered" : "bookmark.fill")
                 .foregroundStyle(item.isRanked ? Color.fairwayGreen : .secondary)
                 .frame(width: 24)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 // e.g. "@mike ranked" / "@jenny wants to play"
                 (Text("@\(item.username) ").fontWeight(.semibold)

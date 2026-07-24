@@ -1,4 +1,5 @@
 import SwiftUI
+import Supabase
 
 /// Auth gate: routes between the sign-in flow, first-launch username setup,
 /// and the main app based on session state.
@@ -6,6 +7,7 @@ struct RootView: View {
     @Environment(SessionStore.self) private var session
 
     var body: some View {
+        @Bindable var session = session
         Group {
             switch session.state {
             case .loading:
@@ -29,6 +31,14 @@ struct RootView: View {
         }
         .task {
             await session.start()
+        }
+        // Password-recovery links (threewood://reset-password#...) hand their
+        // tokens to Supabase, which emits .passwordRecovery.
+        .onOpenURL { url in
+            Task { try? await supa.auth.session(from: url) }
+        }
+        .sheet(isPresented: $session.needsPasswordReset) {
+            UpdatePasswordView()
         }
     }
 }

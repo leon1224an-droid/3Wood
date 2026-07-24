@@ -18,6 +18,7 @@ struct EmailSignInView: View {
     @State private var password = ""
     @State private var errorMessage: String?
     @State private var isSubmitting = false
+    @State private var resetNote: String?
 
     var body: some View {
         Form {
@@ -51,10 +52,43 @@ struct EmailSignInView: View {
                 }
             }
             .disabled(isSubmitting || email.isEmpty || password.count < 6)
+
+            if mode == .signIn {
+                Button("Forgot password?") {
+                    Task { await sendReset() }
+                }
+                .font(.subheadline)
+                .tint(Color.fairwayGreen)
+                .disabled(isSubmitting)
+            }
         }
         .creamScreen()
         .navigationTitle(mode.title)
         .navigationBarTitleDisplayMode(.inline)
+        .alert("Password reset", isPresented: .init(
+            get: { resetNote != nil },
+            set: { if !$0 { resetNote = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(resetNote ?? "")
+        }
+    }
+
+    private func sendReset() async {
+        guard !email.isEmpty else {
+            resetNote = "Enter your email above first, then tap Forgot password."
+            return
+        }
+        do {
+            try await supa.auth.resetPasswordForEmail(
+                email,
+                redirectTo: URL(string: "threewood://reset-password")
+            )
+            resetNote = "Check \(email) for a reset link. Open it on this device to set a new password."
+        } catch {
+            resetNote = "Couldn't send the reset email. \(error.localizedDescription)"
+        }
     }
 
     private func submit() async {
