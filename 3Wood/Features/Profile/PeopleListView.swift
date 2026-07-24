@@ -1,39 +1,27 @@
 import SwiftUI
 
-/// Tappable played/followers/following counts. Followers and following push a
-/// PeopleListView. Requires an enclosing NavigationStack.
-struct ProfileStatsBar: View {
-    let userID: UUID
-    let stats: ProfileStats
-
-    var body: some View {
-        HStack(spacing: 28) {
-            StatItem(value: stats.played, label: "Played")
-            NavigationLink {
-                PeopleListView(userID: userID, mode: .followers)
-            } label: {
-                StatItem(value: stats.followers, label: "Followers")
-            }
-            .buttonStyle(.plain)
-            NavigationLink {
-                PeopleListView(userID: userID, mode: .following)
-            } label: {
-                StatItem(value: stats.following, label: "Following")
-            }
-            .buttonStyle(.plain)
-        }
-    }
-}
-
-private struct StatItem: View {
-    let value: Int
+/// Flat capsule stat chip: bold count + label, ruled in sand. Shared by the
+/// own-profile and other-profile headers so the two screens stay in step.
+struct FollowChip: View {
+    let count: Int?
     let label: String
 
     var body: some View {
-        VStack(spacing: 2) {
-            Text("\(value)").font(.headline.monospacedDigit())
-            Text(label).font(.caption).foregroundStyle(.secondary)
+        HStack(spacing: 5) {
+            Text("\(count ?? 0)")
+                .font(.subheadline.weight(.semibold))
+                .monospacedDigit()
+                .foregroundStyle(Color.darkPine)
+            Text(label)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .background(Color.cream, in: Capsule())
+        .overlay(Capsule().strokeBorder(Color.sand, lineWidth: 1))
+        .contentShape(Capsule())
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -101,6 +89,7 @@ struct PeopleListView: View {
                     .listRowSeparatorTint(Color.sand)
                 }
                 .listStyle(.plain)
+                .refreshable { await reload() }
             }
         }
         .creamScreen()

@@ -2,33 +2,57 @@ import SwiftUI
 
 /// Another user's profile: stats, follow button, and their ranked list.
 struct OtherProfileView: View {
+    @Environment(SessionStore.self) private var session
     @State var person: ProfileSummary
     @State private var stats: ProfileStats?
     @State private var ranked: [RankedCourse] = []
+    @State private var peopleMode: PeopleListView.Mode?
     @State private var isBlocked = false
     @State private var isReporting = false
     @State private var isConfirmingBlock = false
     @State private var moderationNote: String?
 
+    /// True when this screen was reached for the signed-in user (e.g. your own
+    /// row in someone's followers list) — hides follow/report/block for self.
+    private var isMe: Bool {
+        if case .signedIn(let profile) = session.state { return profile.id == person.id }
+        return false
+    }
+
     var body: some View {
         List {
             Section {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(person.displayName ?? person.username)
-                            .font(.title3.bold())
-                        Text("@\(person.username)")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(person.displayName ?? person.username)
+                                .font(.title2.bold())
+                            Text("@\(person.username)")
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        if !isMe {
+                            FollowButton(person: $person)
+                        }
                     }
-                    Spacer()
-                    FollowButton(person: $person)
+                    // Buttons + navigationDestination (not NavigationLink)
+                    // so the List doesn't bolt a chevron onto each chip.
+                    HStack(spacing: 10) {
+                        Button {
+                            peopleMode = .followers
+                        } label: {
+                            FollowChip(count: stats?.followers, label: "Followers")
+                        }
+                        .buttonStyle(.plain)
+                        Button {
+                            peopleMode = .following
+                        } label: {
+                            FollowChip(count: stats?.following, label: "Following")
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .padding(.vertical, 4)
-                if let stats {
-                    ProfileStatsBar(userID: person.id, stats: stats)
-                        .padding(.vertical, 4)
-                }
+                .padding(.vertical, 6)
             }
 
             Section("Their courses") {
@@ -62,23 +86,9 @@ struct OtherProfileView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button("Report user", systemImage: "flag") {
-                        isReporting = true
-                    }
-                    if isBlocked {
-                        Button("Unblock user", systemImage: "hand.raised.slash") {
-                            Task { await setBlocked(false) }
-                        }
-                    } else {
-                        Button("Block user", systemImage: "hand.raised", role: .destructive) {
-                            isConfirmingBlock = true
-                        }
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
+                if !isMe {
+                    menuButton
                 }
-                .accessibilityLabel("Report or block")
             }
         }
         .confirmationDialog("Report @\(person.username)?",
@@ -110,18 +120,44 @@ struct OtherProfileView: View {
         .navigationDestination(for: RankedCourse.self) { ranked in
             CourseDetailByID(courseID: ranked.courseID)
         }
-        .task {
-            async let statsTask = SocialRepo.stats(of: person.id)
-            async let rankedTask = SocialRepo.rankedCourses(of: person.id)
-            async let followingTask = SocialRepo.isFollowing(person.id)
-            async let blockedTask = ModerationRepo.isBlocked(userID: person.id)
-            stats = try? await statsTask
-            ranked = (try? await rankedTask) ?? []
-            if let following = try? await followingTask {
-                person.isFollowing = following
-            }
-            isBlocked = (try? await blockedTask) ?? false
+        .navigationDestination(item: $peopleMode) { mode in
+            PeopleListView(userID: person.id, mode: mode)
         }
+        .task { await reload() }
+        .refreshable { await reload() }
+    }
+
+    private var menuButton: some View {
+        Menu {
+            Button("Report user", systemImage: "flag") {
+                isReporting = true
+            }
+            if isBlocked {
+                Button("Unblock user", systemImage: "hand.raised.slash") {
+                    Task { await setBlocked(false) }
+                }
+            } else {
+                Button("Block user", systemImage: "hand.raised", role: .destructive) {
+                    isConfirmingBlock = true
+                }
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+        }
+        .accessibilityLabel("Report or block")
+    }
+
+    private func reload() async {
+        async let statsTask = SocialRepo.stats(of: person.id)
+        async let rankedTask = SocialRepo.rankedCourses(of: person.id)
+        async let followingTask = SocialRepo.isFollowing(person.id)
+        async let blockedTask = ModerationRepo.isBlocked(userID: person.id)
+        stats = try? await statsTask
+        ranked = (try? await rankedTask) ?? []
+        if let following = try? await followingTask {
+            person.isFollowing = following
+        }
+        isBlocked = (try? await blockedTask) ?? false
     }
 
     private func report(_ reason: ReportReason) async {

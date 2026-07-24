@@ -33,22 +33,18 @@ struct ProfileView: View {
                                 Button {
                                     peopleMode = .followers
                                 } label: {
-                                    followChip(count: stats?.followers, label: "Followers")
+                                    FollowChip(count: stats?.followers, label: "Followers")
                                 }
                                 .buttonStyle(.plain)
                                 Button {
                                     peopleMode = .following
                                 } label: {
-                                    followChip(count: stats?.following, label: "Following")
+                                    FollowChip(count: stats?.following, label: "Following")
                                 }
                                 .buttonStyle(.plain)
                             }
                         }
                         .padding(.vertical, 6)
-                    }
-                    .task {
-                        stats = try? await SocialRepo.stats(of: profile.id)
-                        wantToPlayCount = (try? await WantToPlayRepo.list())?.count
                     }
                 }
 
@@ -83,6 +79,10 @@ struct ProfileView: View {
             }
             .creamScreen()
             .navigationTitle("Profile")
+            // Counts go stale while the tab stays mounted — reload whenever the
+            // screen comes back into view (tab switch or popping a child).
+            .onAppear { Task { await reloadCounts() } }
+            .refreshable { await reloadCounts() }
             .navigationDestination(item: $peopleMode) { mode in
                 if let myID {
                     PeopleListView(userID: myID, mode: mode)
@@ -110,25 +110,6 @@ struct ProfileView: View {
         }
     }
 
-    /// Flat capsule stat button: bold count + label, ruled in sand.
-    private func followChip(count: Int?, label: String) -> some View {
-        HStack(spacing: 5) {
-            Text("\(count ?? 0)")
-                .font(.subheadline.weight(.semibold))
-                .monospacedDigit()
-                .foregroundStyle(Color.darkPine)
-            Text(label)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-        .background(Color.cream, in: Capsule())
-        .overlay(Capsule().strokeBorder(Color.sand, lineWidth: 1))
-        .contentShape(Capsule())
-        .accessibilityElement(children: .combine)
-    }
-
     /// Row that jumps to the Lists tab on the given segment.
     private func listLink(_ title: String, count: Int?, segment: ListsView.Segment) -> some View {
         Button {
@@ -151,6 +132,12 @@ struct ProfileView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    private func reloadCounts() async {
+        guard let myID else { return }
+        stats = try? await SocialRepo.stats(of: myID)
+        wantToPlayCount = (try? await WantToPlayRepo.list())?.count
     }
 
     private func deleteAccount() async {

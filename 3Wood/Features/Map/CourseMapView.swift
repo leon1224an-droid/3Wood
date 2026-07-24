@@ -160,6 +160,18 @@ struct CourseMapView: View {
                         .padding(.vertical, 6)
                         .background(.thinMaterial, in: Capsule())
                 }
+                if viewModel.loadFailed {
+                    Button {
+                        viewModel.retry()
+                    } label: {
+                        Label("Couldn't load courses — retry", systemImage: "arrow.clockwise")
+                            .font(.footnote.weight(.medium))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(.thinMaterial, in: Capsule())
+                            .foregroundStyle(Color.clayRed)
+                    }
+                }
                 activeFilterChip
             }
             .padding(.top, 8)
@@ -184,7 +196,9 @@ struct CourseMapView: View {
 
     private var listView: some View {
         Group {
-            if filteredCourses.isEmpty {
+            if viewModel.loadFailed, filteredCourses.isEmpty {
+                LoadFailedView { viewModel.retry() }
+            } else if filteredCourses.isEmpty {
                 ContentUnavailableView(
                     "No courses here",
                     systemImage: "mappin.slash",

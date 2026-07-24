@@ -41,24 +41,29 @@ struct LeaderboardView: View {
                         Text("^[\(entry.played) course](inflect: true)")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        Image(systemName: "chevron.right")
-                            .font(.caption.bold())
-                            .foregroundStyle(.tertiary)
-                            .accessibilityHidden(true)
+                        // Your own row is not a link — nothing to follow.
+                        if !entry.isMe {
+                            Image(systemName: "chevron.right")
+                                .font(.caption.bold())
+                                .foregroundStyle(.tertiary)
+                                .accessibilityHidden(true)
+                        }
                     }
                     .listRowBackground(entry.isMe ? Color.fairwayGreen.opacity(0.12) : Color.clear)
                     .listRowSeparatorTint(Color.sand)
                     .contentShape(Rectangle())
                     .onTapGesture {
+                        guard !entry.isMe else { return }
                         selectedPerson = ProfileSummary(
                             id: entry.id, username: entry.username,
                             displayName: entry.displayName, isFollowing: false
                         )
                     }
                     .accessibilityElement(children: .combine)
-                    .accessibilityAddTraits(.isButton)
-                    .accessibilityHint("Opens profile")
+                    .accessibilityAddTraits(entry.isMe ? [] : .isButton)
+                    .accessibilityHint(entry.isMe ? "" : "Opens profile")
                     .accessibilityAction {
+                        guard !entry.isMe else { return }
                         selectedPerson = ProfileSummary(
                             id: entry.id, username: entry.username,
                             displayName: entry.displayName, isFollowing: false
@@ -66,6 +71,7 @@ struct LeaderboardView: View {
                     }
                 }
                 .listStyle(.plain)
+                .refreshable { await reload() }
             }
         }
         .creamScreen()

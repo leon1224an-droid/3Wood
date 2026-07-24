@@ -14,6 +14,7 @@ struct CourseDetailView: View {
     @State private var isConfirmingRemoval = false
     @State private var actionError: String?
     @State private var reportedReview: Review?
+    @State private var selectedPerson: ProfileSummary?
 
     private var myReview: Review? { reviews.first(where: \.isMine) }
     /// Community numbers refreshed after ranking; falls back to the passed-in
@@ -86,11 +87,26 @@ struct CourseDetailView: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                         ForEach(friendScores) { friend in
-                            HStack {
-                                Text("@\(friend.username)")
-                                Spacer()
-                                ScoreBadge(score: friend.score, compact: true)
+                            Button {
+                                selectedPerson = ProfileSummary(
+                                    id: friend.userID, username: friend.username,
+                                    displayName: nil, isFollowing: true
+                                )
+                            } label: {
+                                HStack {
+                                    Text("@\(friend.username)")
+                                        .foregroundStyle(.primary)
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption2.bold())
+                                        .foregroundStyle(.tertiary)
+                                        .accessibilityHidden(true)
+                                    Spacer()
+                                    ScoreBadge(score: friend.score, compact: true)
+                                }
+                                .contentShape(Rectangle())
                             }
+                            .buttonStyle(.plain)
+                            .accessibilityHint("Opens profile")
                         }
                     }
                     .padding()
@@ -192,6 +208,9 @@ struct CourseDetailView: View {
         } message: {
             Text("Reports are reviewed within 24 hours.")
         }
+        .navigationDestination(item: $selectedPerson) { person in
+            OtherProfileView(person: person)
+        }
         .task { await reloadMyRanking() }
     }
 
@@ -216,8 +235,25 @@ struct CourseDetailView: View {
                 ForEach(reviews) { review in
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
-                            Text("@\(review.username)")
-                                .font(.subheadline.weight(.semibold))
+                            // Your own name isn't a link — OtherProfileView
+                            // would offer to follow/block yourself.
+                            if review.isMine {
+                                Text("@\(review.username)")
+                                    .font(.subheadline.weight(.semibold))
+                            } else {
+                                Button {
+                                    selectedPerson = ProfileSummary(
+                                        id: review.userID, username: review.username,
+                                        displayName: nil, isFollowing: false
+                                    )
+                                } label: {
+                                    Text("@\(review.username)")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.primary)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityHint("Opens profile")
+                            }
                             if review.isMine {
                                 Text("You")
                                     .font(.caption2.weight(.medium))

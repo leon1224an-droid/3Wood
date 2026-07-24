@@ -5,7 +5,11 @@ import MapKit
 @MainActor
 final class MapViewModel {
     private(set) var courses: [Course] = []
+    /// Set when a fetch failed and there are no pins to show — the map would
+    /// otherwise just look empty over a network error.
+    private(set) var loadFailed = false
     private var fetchTask: Task<Void, Never>?
+    private var lastRegion: MKCoordinateRegion?
 
     /// Above this many degrees of latitude the pins are too dense to be useful.
     static let maxUsefulSpan: Double = 12
@@ -14,19 +18,31 @@ final class MapViewModel {
 
     func regionChanged(_ region: MKCoordinateRegion) {
         showZoomHint = region.span.latitudeDelta > Self.maxUsefulSpan
+        lastRegion = region
         fetchTask?.cancel()
         fetchTask = Task {
             try? await Task.sleep(for: .milliseconds(250))
             guard !Task.isCancelled else { return }
-            // On failure keep the pins already drawn — replacing them with an
-            // empty array would wipe the map over a transient network blip.
-            guard let found = try? await CourseRepo.inRegion(
-                minLat: region.center.latitude - region.span.latitudeDelta / 2,
-                minLng: region.center.longitude - region.span.longitudeDelta / 2,
-                maxLat: region.center.latitude + region.span.latitudeDelta / 2,
-                maxLng: region.center.longitude + region.span.longitudeDelta / 2
-            ), !Task.isCancelled else { return }
-            courses = found
+            do {
+                let found = try await CourseRepo.inRegion(
+                    minLat: region.center.latitude - region.span.latitudeDelta / 2,
+                    minLng: region.center.longitude - region.span.longitudeDelta / 2,
+                    maxLat: region.center.latitude + region.span.latitudeDelta / 2,
+                    maxLng: region.center.longitude + region.span.longitudeDelta / 2
+                )
+                guard !Task.isCancelled else { return }
+                courses = found
+                loadFailed = false
+            } catch {
+                guard !Task.isCancelled else { return }
+                // Keep the pins already drawn — replacing them with an empty
+                // array would wipe the map over a transient network blip.
+                loadFailed = courses.isEmpty
+            }
         }
+    }
+
+    func retry() {
+        if let lastRegion { regionChanged(lastRegion) }
     }
 }

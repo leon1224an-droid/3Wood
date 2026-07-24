@@ -5,6 +5,7 @@ struct FindFriendsView: View {
     @State private var results: [ProfileSummary] = []
     @State private var selectedPerson: ProfileSummary?
     @State private var searchTask: Task<Void, Never>?
+    @State private var searchFailed = false
 
     var body: some View {
         // The row carries two independent tap targets (open profile / follow),
@@ -41,7 +42,9 @@ struct FindFriendsView: View {
             scheduleSearch()
         }
         .overlay {
-            if results.isEmpty {
+            if searchFailed, results.isEmpty {
+                LoadFailedView { scheduleSearch() }
+            } else if results.isEmpty {
                 ContentUnavailableView(
                     "Find friends",
                     systemImage: "person.2",
@@ -66,9 +69,16 @@ struct FindFriendsView: View {
         searchTask = Task {
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled else { return }
-            let found = (try? await SocialRepo.searchProfiles(trimmed)) ?? []
-            guard !Task.isCancelled else { return }
-            results = found
+            do {
+                let found = try await SocialRepo.searchProfiles(trimmed)
+                guard !Task.isCancelled else { return }
+                results = found
+                searchFailed = false
+            } catch {
+                guard !Task.isCancelled else { return }
+                results = []
+                searchFailed = true
+            }
         }
     }
 }

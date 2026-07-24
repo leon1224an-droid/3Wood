@@ -1,9 +1,17 @@
 import SwiftUI
 
 struct FeedView: View {
+    @Environment(SessionStore.self) private var session
     @State private var items: [FeedItem] = []
+    @State private var selectedItem: FeedItem?
+    @State private var selectedPerson: ProfileSummary?
     @State private var isLoading = true
     @State private var loadFailed = false
+
+    private var myID: UUID? {
+        if case .signedIn(let profile) = session.state { return profile.id }
+        return nil
+    }
 
     var body: some View {
         NavigationStack {
@@ -23,11 +31,29 @@ struct FeedView: View {
                     }
                 } else {
                     List(items) { item in
-                        NavigationLink(value: item) {
-                            FeedRow(item: item)
+                        // Two tap targets per row (username → profile, rest →
+                        // course), so navigation is gesture-driven rather than
+                        // a NavigationLink — see FindFriendsView.
+                        let openProfile: (() -> Void)? = item.actorID == myID ? nil : {
+                            selectedPerson = ProfileSummary(
+                                id: item.actorID, username: item.username,
+                                displayName: nil, isFollowing: false
+                            )
                         }
-                        .listRowBackground(Color.clear)
-                        .listRowSeparatorTint(Color.sand)
+                        FeedRow(item: item, onOpenProfile: openProfile)
+                            .contentShape(Rectangle())
+                            .onTapGesture { selectedItem = item }
+                            .accessibilityElement(children: .combine)
+                            .accessibilityAddTraits(.isButton)
+                            .accessibilityHint("Opens course")
+                            .accessibilityAction { selectedItem = item }
+                            .accessibilityActions {
+                                if let openProfile {
+                                    Button("View @\(item.username)'s profile", action: openProfile)
+                                }
+                            }
+                            .listRowBackground(Color.clear)
+                            .listRowSeparatorTint(Color.sand)
                     }
                     .listStyle(.plain)
                     .refreshable { await reload() }
@@ -51,8 +77,11 @@ struct FeedView: View {
                     .accessibilityIdentifier("leaderboardButton")
                 }
             }
-            .navigationDestination(for: FeedItem.self) { item in
+            .navigationDestination(item: $selectedItem) { item in
                 CourseDetailByID(courseID: item.courseID)
+            }
+            .navigationDestination(item: $selectedPerson) { person in
+                OtherProfileView(person: person)
             }
             .task { await reload() }
         }
@@ -71,6 +100,8 @@ struct FeedView: View {
 
 private struct FeedRow: View {
     let item: FeedItem
+    /// Opens the actor's profile; nil when the actor is you.
+    let onOpenProfile: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -80,9 +111,15 @@ private struct FeedRow: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 // e.g. "@mike ranked" / "@jenny wants to play"
-                (Text("@\(item.username) ").fontWeight(.semibold)
-                 + Text(item.isRanked ? "ranked" : "wants to play"))
-                    .font(.subheadline)
+                if let onOpenProfile {
+                    Button(action: onOpenProfile) {
+                        actionLine
+                    }
+                    .buttonStyle(.borderless)
+                    .tint(.primary)
+                } else {
+                    actionLine
+                }
                 Text(item.courseName)
                     .font(.headline)
                     .lineLimit(1)
@@ -94,11 +131,22 @@ private struct FeedRow: View {
             if item.isRanked {
                 ScoreBadge(score: item.score)
             }
+            Image(systemName: "chevron.right")
+                .font(.caption.bold())
+                .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
         }
         .padding(.vertical, 2)
+    }
+
+    private var actionLine: some View {
+        (Text("@\(item.username) ").fontWeight(.semibold)
+         + Text(item.isRanked ? "ranked" : "wants to play"))
+            .font(.subheadline)
     }
 }
 
 #Preview {
     FeedView()
+        .environment(SessionStore())
 }
