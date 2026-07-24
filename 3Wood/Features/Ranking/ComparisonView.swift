@@ -21,9 +21,15 @@ struct ComparisonView: View {
                 onAnswer(.preferNew)
             }
 
-            Text("vs")
-                .font(.headline)
-                .foregroundStyle(.secondary)
+            // A flat roundel echoing the wordmark's golf-ball discs.
+            ZStack {
+                Circle().fill(Color.darkPine)
+                Text("VS")
+                    .font(.custom("Righteous-Regular", fixedSize: 14))
+                    .foregroundStyle(Color.cream)
+            }
+            .frame(width: 38, height: 38)
+            .accessibilityHidden(true)
 
             comparisonCard(
                 name: candidate.name,
@@ -40,9 +46,11 @@ struct ComparisonView: View {
             }
             .font(.subheadline)
 
-            Text(comparisonsRemaining == 1 ? "Last one" : "A few more to place this course")
+            Text(comparisonsRemaining == 1
+                 ? "Last one"
+                 : "At most ^[\(comparisonsRemaining) more comparison](inflect: true)")
                 .font(.caption)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.secondary)
         }
         .padding()
         .creamScreen()
@@ -58,8 +66,8 @@ struct ComparisonView: View {
                         .font(.caption2.bold())
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)
-                        .background(Color.fairwayGreen.opacity(0.15), in: Capsule())
-                        .foregroundStyle(Color.fairwayGreen)
+                        .background(Color.sunriseGold, in: Capsule())
+                        .foregroundStyle(Color.inkOnGold)
                 }
                 Text(name)
                     .font(.headline)

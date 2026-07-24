@@ -17,10 +17,19 @@ struct LeaderboardView: View {
             } else {
                 List(entries) { entry in
                     HStack(spacing: 14) {
-                        Text("\(entry.rank)")
-                            .font(.headline.monospacedDigit())
-                            .foregroundStyle(medalColor(entry.rank))
-                            .frame(width: 32, alignment: .trailing)
+                        // Honor-board rank: brand numerals, a thin ring for
+                        // the podium — flat, no trophy art.
+                        ZStack {
+                            if entry.rank <= 3 {
+                                Circle()
+                                    .strokeBorder(medalColor(entry.rank), lineWidth: 1.5)
+                            }
+                            Text("\(entry.rank)")
+                                .font(.custom("Righteous-Regular", fixedSize: 17))
+                                .monospacedDigit()
+                                .foregroundStyle(medalColor(entry.rank))
+                        }
+                        .frame(width: 36, height: 36)
                         VStack(alignment: .leading, spacing: 1) {
                             Text("@\(entry.username)")
                                 .fontWeight(entry.isMe ? .bold : .regular)

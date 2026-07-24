@@ -74,11 +74,11 @@ final class NavigationUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["My Courses"].waitForExistence(timeout: timeout))
         snapshot("01-Lists-Played")
 
-        // --- Lists: Want to Play segment ---
-        let wantSegment = app.segmentedControls.buttons["Want to Play"]
+        // --- Lists: Want to Play segment (custom flat tabs) ---
+        let wantSegment = app.buttons["Want to Play"]
         tap(wantSegment, "Want to Play segment")
         snapshot("02-Lists-WantToPlay")
-        tap(app.segmentedControls.buttons["Played"], "Played segment")
+        tap(app.buttons["Played"], "Played segment")
 
         // --- Search ---
         switchToTab("Search")

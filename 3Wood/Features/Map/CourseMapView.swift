@@ -85,8 +85,19 @@ struct CourseMapView: View {
                 ForEach(filteredCourses) { course in
                     Annotation(course.name, coordinate: course.coordinate) {
                         NavigationLink(value: course) {
-                            ScoreBadge(score: course.avgScore, compact: true)
+                            // Score capsules only for rated courses; unrated
+                            // ones get a quiet dot so dense metros stay legible
+                            // and the rated badges pop.
+                            if course.avgScore != nil {
+                                ScoreBadge(score: course.avgScore, compact: true)
+                            } else {
+                                Circle()
+                                    .fill(Color.darkPine)
+                                    .overlay(Circle().strokeBorder(Color.cream, lineWidth: 1.5))
+                                    .frame(width: 12, height: 12)
+                            }
                         }
+                        .accessibilityLabel(course.name)
                     }
                 }
             }
