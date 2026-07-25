@@ -2,9 +2,8 @@ import SwiftUI
 
 struct FeedView: View {
     @Environment(SessionStore.self) private var session
+    @Environment(AppNavigation.self) private var nav
     @State private var items: [FeedItem] = []
-    @State private var selectedItem: FeedItem?
-    @State private var selectedPerson: ProfileSummary?
     @State private var isLoading = true
     @State private var loadFailed = false
 
@@ -14,7 +13,8 @@ struct FeedView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        @Bindable var router = nav.feedRouter
+        NavigationStack(path: $router.path) {
             Group {
                 if isLoading {
                     ProgressView()
@@ -26,7 +26,7 @@ struct FeedView: View {
                     } description: {
                         Text("Follow friends to see the courses they play and rank.")
                     } actions: {
-                        NavigationLink("Find friends") { FindFriendsView() }
+                        NavigationLink("Find friends", value: Destination.findFriends)
                             .buttonStyle(.borderedProminent)
                     }
                 } else {
@@ -35,18 +35,18 @@ struct FeedView: View {
                         // course), so navigation is gesture-driven rather than
                         // a NavigationLink — see FindFriendsView.
                         let openProfile: (() -> Void)? = item.actorID == myID ? nil : {
-                            selectedPerson = ProfileSummary(
+                            nav.feedRouter.push(.person(ProfileSummary(
                                 id: item.actorID, username: item.username,
                                 displayName: nil, isFollowing: false
-                            )
+                            )))
                         }
                         FeedRow(item: item, onOpenProfile: openProfile)
                             .contentShape(Rectangle())
-                            .onTapGesture { selectedItem = item }
+                            .onTapGesture { nav.feedRouter.push(.courseID(item.courseID)) }
                             .accessibilityElement(children: .combine)
                             .accessibilityAddTraits(.isButton)
                             .accessibilityHint("Opens course")
-                            .accessibilityAction { selectedItem = item }
+                            .accessibilityAction { nav.feedRouter.push(.courseID(item.courseID)) }
                             .accessibilityActions {
                                 if let openProfile {
                                     Button("View @\(item.username)'s profile", action: openProfile)
@@ -67,9 +67,7 @@ struct FeedView: View {
                     Wordmark(size: 24)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink {
-                        LeaderboardView()
-                    } label: {
+                    NavigationLink(value: Destination.leaderboard) {
                         Image(systemName: "trophy")
                     }
                     .tint(Color.fairwayGreen)
@@ -77,14 +75,10 @@ struct FeedView: View {
                     .accessibilityIdentifier("leaderboardButton")
                 }
             }
-            .navigationDestination(item: $selectedItem) { item in
-                CourseDetailByID(courseID: item.courseID)
-            }
-            .navigationDestination(item: $selectedPerson) { person in
-                OtherProfileView(person: person)
-            }
+            .appDestinations()
             .task { await reload() }
         }
+        .environment(router)
     }
 
     private func reload() async {
@@ -149,4 +143,5 @@ private struct FeedRow: View {
 #Preview {
     FeedView()
         .environment(SessionStore())
+        .environment(AppNavigation())
 }

@@ -1,10 +1,12 @@
 import SwiftUI
 
 struct SearchView: View {
+    @Environment(AppNavigation.self) private var nav
     @State private var viewModel = SearchViewModel()
 
     var body: some View {
-        NavigationStack {
+        @Bindable var router = nav.searchRouter
+        NavigationStack(path: $router.path) {
             Group {
                 if viewModel.results.isEmpty {
                     if viewModel.isSearching {
@@ -22,7 +24,7 @@ struct SearchView: View {
                     }
                 } else {
                     List(viewModel.results) { course in
-                        NavigationLink(value: course) {
+                        NavigationLink(value: Destination.course(course)) {
                             CourseRow(course: course)
                         }
                         .listRowBackground(Color.clear)
@@ -34,10 +36,9 @@ struct SearchView: View {
             .creamScreen()
             .navigationTitle("Search")
             .searchable(text: $viewModel.query, prompt: "Course name or city")
-            .navigationDestination(for: Course.self) { course in
-                CourseDetailView(course: course)
-            }
+            .appDestinations()
         }
+        .environment(router)
     }
 }
 
@@ -83,4 +84,5 @@ struct CourseRow: View {
 
 #Preview {
     SearchView()
+        .environment(AppNavigation())
 }

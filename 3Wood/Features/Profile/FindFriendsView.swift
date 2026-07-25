@@ -1,9 +1,9 @@
 import SwiftUI
 
 struct FindFriendsView: View {
+    @Environment(Router.self) private var router
     @State private var query = ""
     @State private var results: [ProfileSummary] = []
-    @State private var selectedPerson: ProfileSummary?
     @State private var searchTask: Task<Void, Never>?
     @State private var searchFailed = false
 
@@ -30,8 +30,8 @@ struct FindFriendsView: View {
                     .accessibilityHidden(true)
             }
             .contentShape(Rectangle())
-            .onTapGesture { selectedPerson = person }
-            .personRowAccessibility(person: $person) { selectedPerson = person }
+            .onTapGesture { router.push(.person(person)) }
+            .personRowAccessibility(person: $person) { router.push(.person(person)) }
             .listRowBackground(Color.clear)
             .listRowSeparatorTint(Color.sand)
         }
@@ -54,9 +54,6 @@ struct FindFriendsView: View {
         }
         .navigationTitle("Find friends")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(item: $selectedPerson) { person in
-            OtherProfileView(person: person)
-        }
     }
 
     private func scheduleSearch() {

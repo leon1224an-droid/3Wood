@@ -18,7 +18,8 @@ struct ListsView: View {
     @State private var actionError: String?
 
     var body: some View {
-        NavigationStack {
+        @Bindable var router = nav.listsRouter
+        NavigationStack(path: $router.path) {
             VStack(spacing: 0) {
                 segmentTabs
 
@@ -39,12 +40,7 @@ struct ListsView: View {
                     .accessibilityLabel("Log a course")
                 }
             }
-            .navigationDestination(for: Course.self) { course in
-                CourseDetailView(course: course)
-            }
-            .navigationDestination(for: RankedCourse.self) { ranked in
-                CourseDetailByID(courseID: ranked.courseID)
-            }
+            .appDestinations()
             .fullScreenCover(isPresented: $isLoggingCourse, onDismiss: {
                 Task { await reload() }
             }) {
@@ -87,6 +83,7 @@ struct ListsView: View {
                 Text(actionError ?? "")
             }
         }
+        .environment(router)
     }
 
     /// Flat editorial tabs: active tab underlined in fairway green over a
@@ -138,7 +135,7 @@ struct ListsView: View {
         } else {
             List {
                 ForEach(Array(ranked.enumerated()), id: \.element.id) { index, course in
-                    NavigationLink(value: course) {
+                    NavigationLink(value: Destination.courseID(course.courseID)) {
                         HStack(spacing: 12) {
                             Text("\(index + 1)")
                                 .font(.headline.monospacedDigit())
@@ -183,7 +180,7 @@ struct ListsView: View {
             }
         } else {
             List(wantToPlay) { course in
-                NavigationLink(value: course) {
+                NavigationLink(value: Destination.course(course)) {
                     CourseRow(course: course)
                 }
                 .listRowBackground(Color.clear)
@@ -221,4 +218,5 @@ struct ListsView: View {
 
 #Preview {
     ListsView()
+        .environment(AppNavigation())
 }

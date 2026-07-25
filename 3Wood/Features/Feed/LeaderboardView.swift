@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct LeaderboardView: View {
+    @Environment(Router.self) private var router
     @State private var entries: [LeaderboardEntry] = []
-    @State private var selectedPerson: ProfileSummary?
     @State private var isLoading = true
     @State private var loadFailed = false
 
@@ -54,20 +54,20 @@ struct LeaderboardView: View {
                     .contentShape(Rectangle())
                     .onTapGesture {
                         guard !entry.isMe else { return }
-                        selectedPerson = ProfileSummary(
+                        router.push(.person(ProfileSummary(
                             id: entry.id, username: entry.username,
                             displayName: entry.displayName, isFollowing: false
-                        )
+                        )))
                     }
                     .accessibilityElement(children: .combine)
                     .accessibilityAddTraits(entry.isMe ? [] : .isButton)
                     .accessibilityHint(entry.isMe ? "" : "Opens profile")
                     .accessibilityAction {
                         guard !entry.isMe else { return }
-                        selectedPerson = ProfileSummary(
+                        router.push(.person(ProfileSummary(
                             id: entry.id, username: entry.username,
                             displayName: entry.displayName, isFollowing: false
-                        )
+                        )))
                     }
                 }
                 .listStyle(.plain)
@@ -77,9 +77,6 @@ struct LeaderboardView: View {
         .creamScreen()
         .navigationTitle("Leaderboard")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(item: $selectedPerson) { person in
-            OtherProfileView(person: person)
-        }
         .task { await reload() }
     }
 
@@ -105,4 +102,5 @@ struct LeaderboardView: View {
 
 #Preview {
     NavigationStack { LeaderboardView() }
+        .environment(Router())
 }

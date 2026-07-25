@@ -132,6 +132,20 @@ final class NavigationUITests: XCTestCase {
             XCTAssertTrue(app.staticTexts["Their courses"].waitForExistence(timeout: timeout),
                           "Other-profile did not open")
             snapshot("08-OtherProfile")
+
+            // Regression: a course tapped from their list must open its
+            // detail, and back must land on the profile again (the push used
+            // to bounce straight back and desync the back button).
+            let theirCourse = app.staticTexts["Pebble Beach Golf Links"]
+            if theirCourse.waitForExistence(timeout: 6) {
+                theirCourse.tap()
+                XCTAssertTrue(app.staticTexts["Community rating"].waitForExistence(timeout: timeout),
+                              "Course from their list did not open its detail")
+                snapshot("26-OtherProfile-Course")
+                goBack()
+                XCTAssertTrue(app.staticTexts["Their courses"].waitForExistence(timeout: timeout),
+                              "Back from the course did not return to the profile")
+            }
         }
     }
 
@@ -206,6 +220,11 @@ final class NavigationUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH '@'")).firstMatch
                         .waitForExistence(timeout: timeout), "Following list is empty")
         snapshot("15-Following-List")
+
+        // Re-tapping the active tab pops its stack back to the root.
+        app.tabBars.buttons["Profile"].tap()
+        XCTAssertTrue(app.navigationBars["Profile"].waitForExistence(timeout: timeout),
+                      "Re-tapping the Profile tab did not pop to the root")
 
         // Map → list toggle + filter.
         switchToTab("Map")

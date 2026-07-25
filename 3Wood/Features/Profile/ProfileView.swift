@@ -6,7 +6,6 @@ struct ProfileView: View {
     @Environment(AppNavigation.self) private var nav
     @State private var stats: ProfileStats?
     @State private var wantToPlayCount: Int?
-    @State private var peopleMode: PeopleListView.Mode?
     @State private var isConfirmingDelete = false
     @State private var deleteError: String?
 
@@ -16,7 +15,8 @@ struct ProfileView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        @Bindable var router = nav.profileRouter
+        NavigationStack(path: $router.path) {
             List {
                 if case .signedIn(let profile) = session.state {
                     Section {
@@ -27,17 +27,17 @@ struct ProfileView: View {
                                 Text("@\(profile.username)")
                                     .foregroundStyle(.secondary)
                             }
-                            // Buttons + navigationDestination (not NavigationLink)
-                            // so the List doesn't bolt a chevron onto each chip.
+                            // Buttons + router push (not NavigationLink) so
+                            // the List doesn't bolt a chevron onto each chip.
                             HStack(spacing: 10) {
                                 Button {
-                                    peopleMode = .followers
+                                    nav.profileRouter.push(.people(userID: profile.id, mode: .followers))
                                 } label: {
                                     FollowChip(count: stats?.followers, label: "Followers")
                                 }
                                 .buttonStyle(.plain)
                                 Button {
-                                    peopleMode = .following
+                                    nav.profileRouter.push(.people(userID: profile.id, mode: .following))
                                 } label: {
                                     FollowChip(count: stats?.following, label: "Following")
                                 }
@@ -54,14 +54,10 @@ struct ProfileView: View {
                 }
 
                 Section {
-                    NavigationLink {
-                        FindFriendsView()
-                    } label: {
+                    NavigationLink(value: Destination.findFriends) {
                         Label("Find friends", systemImage: "person.badge.plus")
                     }
-                    NavigationLink {
-                        AboutView()
-                    } label: {
+                    NavigationLink(value: Destination.about) {
                         Label("About", systemImage: "info.circle")
                     }
                 }
@@ -83,11 +79,7 @@ struct ProfileView: View {
             // screen comes back into view (tab switch or popping a child).
             .onAppear { Task { await reloadCounts() } }
             .refreshable { await reloadCounts() }
-            .navigationDestination(item: $peopleMode) { mode in
-                if let myID {
-                    PeopleListView(userID: myID, mode: mode)
-                }
-            }
+            .appDestinations()
             .confirmationDialog(
                 "Delete your account?",
                 isPresented: $isConfirmingDelete,
@@ -108,6 +100,7 @@ struct ProfileView: View {
                 Text(deleteError ?? "")
             }
         }
+        .environment(router)
     }
 
     /// Row that jumps to the Lists tab on the given segment.

@@ -12,6 +12,24 @@ final class AppNavigation {
     var selectedTab: Tab = .feed
     var listsSegment: ListsView.Segment = .played
 
+    /// One navigation path per tab, so deep chains survive tab switches and
+    /// re-tapping the active tab can pop its stack to the root.
+    let feedRouter = Router()
+    let searchRouter = Router()
+    let mapRouter = Router()
+    let listsRouter = Router()
+    let profileRouter = Router()
+
+    func router(for tab: Tab) -> Router {
+        switch tab {
+        case .feed: feedRouter
+        case .search: searchRouter
+        case .map: mapRouter
+        case .lists: listsRouter
+        case .profile: profileRouter
+        }
+    }
+
     func showLists(_ segment: ListsView.Segment) {
         listsSegment = segment
         selectedTab = .lists

@@ -37,6 +37,7 @@ private let usStates = [
 struct CourseMapView: View {
     enum ViewMode { case map, list }
 
+    @Environment(AppNavigation.self) private var nav
     @State private var viewModel = MapViewModel()
     @State private var searchModel = MapSearchModel()
     @State private var mode: ViewMode = .map
@@ -55,7 +56,8 @@ struct CourseMapView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        @Bindable var router = nav.mapRouter
+        NavigationStack(path: $router.path) {
             Group {
                 switch mode {
                 case .map: mapView
@@ -112,10 +114,9 @@ struct CourseMapView: View {
                 ToolbarItem(placement: .topBarTrailing) { filterMenu }
                 ToolbarItem(placement: .topBarTrailing) { modeToggle }
             }
-            .navigationDestination(for: Course.self) { course in
-                CourseDetailView(course: course)
-            }
+            .appDestinations()
         }
+        .environment(router)
     }
 
     private var mapView: some View {
@@ -126,7 +127,7 @@ struct CourseMapView: View {
             if !viewModel.showZoomHint {
                 ForEach(filteredCourses) { course in
                     Annotation(course.name, coordinate: course.coordinate) {
-                        NavigationLink(value: course) {
+                        NavigationLink(value: Destination.course(course)) {
                             // Score capsules only for rated courses; unrated
                             // ones get a quiet dot so dense metros stay legible
                             // and the rated badges pop.
@@ -211,7 +212,7 @@ struct CourseMapView: View {
                             .listRowSeparator(.hidden)
                     }
                     ForEach(filteredCourses.sorted { ($0.avgScore ?? -1) > ($1.avgScore ?? -1) }) { course in
-                        NavigationLink(value: course) {
+                        NavigationLink(value: Destination.course(course)) {
                             CourseRow(course: course)
                         }
                         .listRowBackground(Color.clear)
@@ -322,4 +323,5 @@ struct CourseMapView: View {
 
 #Preview {
     CourseMapView()
+        .environment(AppNavigation())
 }

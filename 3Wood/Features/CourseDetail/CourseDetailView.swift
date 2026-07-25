@@ -4,6 +4,7 @@ import MapKit
 struct CourseDetailView: View {
     let course: Course
 
+    @Environment(Router.self) private var router
     @State private var myRanking: RankedCourse?
     @State private var isLoggingCourse = false
     @State private var isBookmarked = false
@@ -14,7 +15,6 @@ struct CourseDetailView: View {
     @State private var isConfirmingRemoval = false
     @State private var actionError: String?
     @State private var reportedReview: Review?
-    @State private var selectedPerson: ProfileSummary?
 
     private var myReview: Review? { reviews.first(where: \.isMine) }
     /// Community numbers refreshed after ranking; falls back to the passed-in
@@ -88,10 +88,10 @@ struct CourseDetailView: View {
                             .foregroundStyle(.secondary)
                         ForEach(friendScores) { friend in
                             Button {
-                                selectedPerson = ProfileSummary(
+                                router.push(.person(ProfileSummary(
                                     id: friend.userID, username: friend.username,
                                     displayName: nil, isFollowing: true
-                                )
+                                )))
                             } label: {
                                 HStack {
                                     Text("@\(friend.username)")
@@ -208,9 +208,6 @@ struct CourseDetailView: View {
         } message: {
             Text("Reports are reviewed within 24 hours.")
         }
-        .navigationDestination(item: $selectedPerson) { person in
-            OtherProfileView(person: person)
-        }
         .task { await reloadMyRanking() }
     }
 
@@ -242,10 +239,10 @@ struct CourseDetailView: View {
                                     .font(.subheadline.weight(.semibold))
                             } else {
                                 Button {
-                                    selectedPerson = ProfileSummary(
+                                    router.push(.person(ProfileSummary(
                                         id: review.userID, username: review.username,
                                         displayName: nil, isFollowing: false
-                                    )
+                                    )))
                                 } label: {
                                     Text("@\(review.username)")
                                         .font(.subheadline.weight(.semibold))

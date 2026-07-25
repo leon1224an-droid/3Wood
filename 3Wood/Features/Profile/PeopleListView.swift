@@ -43,8 +43,8 @@ struct PeopleListView: View {
     let mode: Mode
 
     @Environment(SessionStore.self) private var session
+    @Environment(Router.self) private var router
     @State private var people: [ProfileSummary] = []
-    @State private var selectedPerson: ProfileSummary?
     @State private var isLoading = true
     @State private var loadFailed = false
 
@@ -83,8 +83,8 @@ struct PeopleListView: View {
                             .accessibilityHidden(true)
                     }
                     .contentShape(Rectangle())
-                    .onTapGesture { selectedPerson = person }
-                    .personRowAccessibility(person: $person) { selectedPerson = person }
+                    .onTapGesture { router.push(.person(person)) }
+                    .personRowAccessibility(person: $person) { router.push(.person(person)) }
                     .listRowBackground(Color.clear)
                     .listRowSeparatorTint(Color.sand)
                 }
@@ -95,9 +95,6 @@ struct PeopleListView: View {
         .creamScreen()
         .navigationTitle(mode.title)
         .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(item: $selectedPerson) { person in
-            OtherProfileView(person: person)
-        }
         .task { await reload() }
     }
 

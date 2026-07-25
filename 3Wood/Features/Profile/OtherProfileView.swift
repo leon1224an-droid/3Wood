@@ -3,10 +3,10 @@ import SwiftUI
 /// Another user's profile: stats, follow button, and their ranked list.
 struct OtherProfileView: View {
     @Environment(SessionStore.self) private var session
+    @Environment(Router.self) private var router
     @State var person: ProfileSummary
     @State private var stats: ProfileStats?
     @State private var ranked: [RankedCourse] = []
-    @State private var peopleMode: PeopleListView.Mode?
     @State private var isBlocked = false
     @State private var isReporting = false
     @State private var isConfirmingBlock = false
@@ -35,17 +35,17 @@ struct OtherProfileView: View {
                             FollowButton(person: $person)
                         }
                     }
-                    // Buttons + navigationDestination (not NavigationLink)
-                    // so the List doesn't bolt a chevron onto each chip.
+                    // Buttons + router push (not NavigationLink) so the List
+                    // doesn't bolt a chevron onto each chip.
                     HStack(spacing: 10) {
                         Button {
-                            peopleMode = .followers
+                            router.push(.people(userID: person.id, mode: .followers))
                         } label: {
                             FollowChip(count: stats?.followers, label: "Followers")
                         }
                         .buttonStyle(.plain)
                         Button {
-                            peopleMode = .following
+                            router.push(.people(userID: person.id, mode: .following))
                         } label: {
                             FollowChip(count: stats?.following, label: "Following")
                         }
@@ -61,7 +61,11 @@ struct OtherProfileView: View {
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(Array(ranked.enumerated()), id: \.element.id) { index, course in
-                        NavigationLink(value: course) {
+                        // Router push (not NavigationLink) so revisiting a
+                        // course already in the chain pops back to it.
+                        Button {
+                            router.push(.courseID(course.courseID))
+                        } label: {
                             HStack(spacing: 12) {
                                 Text("\(index + 1)")
                                     .font(.subheadline.monospacedDigit())
@@ -75,8 +79,14 @@ struct OtherProfileView: View {
                                 }
                                 Spacer()
                                 ScoreBadge(score: course.score, compact: true)
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(.tertiary)
+                                    .accessibilityHidden(true)
                             }
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -116,12 +126,6 @@ struct OtherProfileView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(moderationNote ?? "")
-        }
-        .navigationDestination(for: RankedCourse.self) { ranked in
-            CourseDetailByID(courseID: ranked.courseID)
-        }
-        .navigationDestination(item: $peopleMode) { mode in
-            PeopleListView(userID: person.id, mode: mode)
         }
         .task { await reload() }
         .refreshable { await reload() }
