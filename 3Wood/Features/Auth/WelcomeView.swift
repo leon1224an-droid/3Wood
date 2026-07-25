@@ -8,7 +8,7 @@ struct WelcomeView: View {
 
                 // The wordmark IS the brand moment — no stock glyph above it.
                 Wordmark(size: 56)
-                Text("Rank every course you've played.")
+                Text("Golf is meant to be shared.")
                     .foregroundStyle(.secondary)
 
                 Spacer()

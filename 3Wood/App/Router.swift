@@ -12,6 +12,7 @@ enum Destination: Hashable {
     case people(userID: UUID, mode: PeopleListView.Mode)
     case leaderboard
     case findFriends
+    case contacts
     case about
 
     /// Destinations that render the same screen share a key (a course pushed
@@ -24,6 +25,7 @@ enum Destination: Hashable {
         case .people(let userID, let mode): "people-\(userID)-\(mode)"
         case .leaderboard: "leaderboard"
         case .findFriends: "findFriends"
+        case .contacts: "contacts"
         case .about: "about"
         }
     }
@@ -65,6 +67,7 @@ extension View {
             case .people(let userID, let mode): PeopleListView(userID: userID, mode: mode)
             case .leaderboard: LeaderboardView()
             case .findFriends: FindFriendsView()
+            case .contacts: ContactsMatchView()
             case .about: AboutView()
             }
         }

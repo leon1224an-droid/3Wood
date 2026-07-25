@@ -18,5 +18,7 @@
 	<!-- Standard HTTPS only — skips the export-compliance question on upload. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSContactsUsageDescription</key>
+	<string>3Wood matches your contacts&#39; phone numbers to find friends already on the app and lets you invite the rest. Contact names stay on your device; only phone numbers are sent for matching and are never stored.</string>
 </dict>
 </plist>

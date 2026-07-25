@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3Wood — Golf is meant to be shared.</title>
+<meta name="description" content="3Wood is the social golf app: rank every course you play on a 0–10 scale, follow friends, compare scores, and discover your next round on a map of 16,000+ US courses.">
+<meta property="og:title" content="3Wood — Golf is meant to be shared.">
+<meta property="og:description" content="Rank the courses you play, follow your friends, and build your golf story together.">
+<meta property="og:image" content="https://leon1224an-droid.github.io/3Wood/img/score.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Righteous&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --fairway: #1E5B33;
+    --pine:    #12301C;
+    --gold:    #D9A441;
+    --cream:   #F7F3E8;
+    --sand:    #E3D9C2;
+    --clay:    #B3402F;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--cream);
+    color: var(--pine);
+    font-family: "Source Serif 4", Georgia, serif;
+    line-height: 1.6;
+  }
+  .wordmark { font-family: "Righteous", sans-serif; color: var(--fairway); letter-spacing: 0.5px; }
+  a { color: var(--fairway); }
+
+  header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 20px 24px; max-width: 1040px; margin: 0 auto;
+  }
+  header .wordmark { font-size: 28px; text-decoration: none; }
+  header nav a { margin-left: 20px; text-decoration: none; font-size: 15px; }
+
+  #invite-banner {
+    display: none;
+    background: var(--fairway); color: var(--cream);
+    text-align: center; padding: 10px 16px; font-size: 15px;
+  }
+
+  .hero {
+    max-width: 1040px; margin: 0 auto; padding: 48px 24px 24px;
+    display: flex; align-items: center; gap: 48px; flex-wrap: wrap;
+  }
+  .hero-copy { flex: 1 1 380px; }
+  .hero h1 {
+    font-family: "Righteous", sans-serif; font-weight: 400;
+    font-size: clamp(38px, 6vw, 58px); line-height: 1.12;
+    color: var(--pine); margin-bottom: 18px;
+  }
+  .hero h1 em { color: var(--fairway); font-style: normal; }
+  .hero p.sub { font-size: 19px; color: #4b543f; max-width: 44ch; margin-bottom: 26px; }
+  .badge {
+    display: inline-block; background: var(--pine); color: var(--cream);
+    border-radius: 999px; padding: 12px 22px; font-size: 15px;
+    text-decoration: none; letter-spacing: 0.2px;
+  }
+  .badge small { display: block; font-size: 11px; opacity: 0.75; letter-spacing: 1px; text-transform: uppercase; }
+  .hero-shot { flex: 0 1 300px; margin: 0 auto; }
+
+  .phone {
+    border: 10px solid var(--pine); border-radius: 44px; overflow: hidden;
+    box-shadow: 0 24px 48px rgba(18,48,28,0.18);
+    background: var(--pine);
+  }
+  .phone img { display: block; width: 100%; height: auto; }
+
+  section { max-width: 1040px; margin: 0 auto; padding: 56px 24px; }
+  h2 {
+    font-family: "Righteous", sans-serif; font-weight: 400;
+    font-size: 32px; color: var(--fairway); margin-bottom: 8px;
+  }
+  .rule { width: 64px; height: 3px; background: var(--gold); border: 0; margin: 0 0 28px; }
+
+  .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+  .feature {
+    background: #fffdf7; border: 1px solid var(--sand); border-radius: 16px; padding: 22px;
+  }
+  .feature .num {
+    font-family: "Righteous", sans-serif; font-size: 26px; color: var(--gold);
+  }
+  .feature h3 { font-size: 18px; margin: 6px 0 6px; }
+  .feature p { font-size: 15px; color: #4b543f; }
+
+  .gallery {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 24px; align-items: start;
+  }
+  .gallery figure .phone { border-width: 7px; border-radius: 34px; }
+  .gallery figcaption { text-align: center; font-size: 14px; color: #4b543f; margin-top: 10px; }
+
+  .cta {
+    background: var(--fairway); border-radius: 24px; text-align: center;
+    color: var(--cream); padding: 56px 24px !important; margin: 0 24px 56px;
+    max-width: 992px;
+  }
+  @media (min-width: 1040px) { .cta { margin: 0 auto 56px; } }
+  .cta h2 { color: var(--cream); }
+  .cta p { max-width: 52ch; margin: 0 auto 24px; opacity: 0.92; }
+  .cta .badge { background: var(--cream); color: var(--pine); }
+
+  footer {
+    border-top: 1px solid var(--sand); padding: 28px 24px 48px;
+    max-width: 1040px; margin: 0 auto; font-size: 13.5px; color: #4b543f;
+  }
+  footer .links { margin-bottom: 10px; }
+  footer .links a { margin-right: 18px; }
+</style>
+</head>
+<body>
+
+<div id="invite-banner"></div>
+
+<header>
+  <a class="wordmark" href="#">3Wood</a>
+  <nav>
+    <a href="#features">Features</a>
+    <a href="#screens">Screens</a>
+    <a href="privacy.html">Privacy</a>
+  </nav>
+</header>
+
+<div class="hero">
+  <div class="hero-copy">
+    <h1>Golf is meant<br>to be <em>shared.</em></h1>
+    <p class="sub">3Wood turns every round into part of your story — rank the courses
+    you play, follow your friends, and build the ultimate course map together.</p>
+    <a class="badge" href="#cta"><small>Coming soon to the</small>App&nbsp;Store</a>
+  </div>
+  <div class="hero-shot">
+    <div class="phone"><img src="img/score.png" alt="3Wood score reveal: Spyglass Hill Golf Course, 9.8"></div>
+  </div>
+</div>
+
+<section id="features">
+  <h2>More than a rating app</h2>
+  <hr class="rule">
+  <div class="features">
+    <div class="feature">
+      <div class="num">01</div>
+      <h3>Rank, don't rate</h3>
+      <p>No agonizing over stars. Pick "liked it, fine, or didn't," compare a few
+      head-to-head matchups, and 3Wood computes your personal 0–10 score for every course.</p>
+    </div>
+    <div class="feature">
+      <div class="num">02</div>
+      <h3>A feed of real rounds</h3>
+      <p>See the courses your friends play, save, and love — then tap through to
+      their full ranked list. Your crew's taste beats any anonymous review site.</p>
+    </div>
+    <div class="feature">
+      <div class="num">03</div>
+      <h3>Friends' scores, side by side</h3>
+      <p>Open any course and see exactly how everyone in your circle scored it.
+      Settle the "best track in town" debate with receipts.</p>
+    </div>
+    <div class="feature">
+      <div class="num">04</div>
+      <h3>16,000+ US courses</h3>
+      <p>Search by name or city, or explore the map. Jot a want-to-play list so the
+      next trip plans itself.</p>
+    </div>
+    <div class="feature">
+      <div class="num">05</div>
+      <h3>Find your foursome</h3>
+      <p>Match your contacts to find friends already on 3Wood, and invite the rest
+      with a personal link.</p>
+    </div>
+    <div class="feature">
+      <div class="num">06</div>
+      <h3>Climb the leaderboard</h3>
+      <p>Every course you log moves you up. Bragging rights included.</p>
+    </div>
+  </div>
+</section>
+
+<section id="screens">
+  <h2>A quick look</h2>
+  <hr class="rule">
+  <div class="gallery">
+    <figure><div class="phone"><img src="img/feed.png" alt="Activity feed of friends' rounds"></div><figcaption>Your friends' rounds, live</figcaption></figure>
+    <figure><div class="phone"><img src="img/course.png" alt="Course page with community rating and friends' scores"></div><figcaption>Every course, everyone's take</figcaption></figure>
+    <figure><div class="phone"><img src="img/profile.png" alt="A friend's profile with their ranked courses"></div><figcaption>Profiles built from real rounds</figcaption></figure>
+    <figure><div class="phone"><img src="img/lists.png" alt="Personal ranked course list"></div><figcaption>Your courses, ranked 0–10</figcaption></figure>
+    <figure><div class="phone"><img src="img/map.png" alt="Map of golf courses in Scottsdale, Arizona"></div><figcaption>Explore 16,000+ US courses</figcaption></figure>
+    <figure><div class="phone"><img src="img/search.png" alt="Course search results with community ratings"></div><figcaption>16,000+ courses, one search away</figcaption></figure>
+  </div>
+</section>
+
+<section class="cta" id="cta">
+  <h2>Bring your golf crew</h2>
+  <p>3Wood is in the final stretch before its App Store debut. Grab your spot on the
+  first tee — and bring the group chat with you.</p>
+  <a class="badge" href="mailto:leon1224an@gmail.com?subject=3Wood%20early%20access"><small>Want in early?</small>Request an invite</a>
+</section>
+
+<footer>
+  <div class="links">
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="terms.html">Terms of Service</a>
+    <a href="mailto:leon1224an@gmail.com">Support</a>
+  </div>
+  <div>Course data © OpenGolfAPI contributors, licensed under the
+  <a href="https://opendatacommons.org/licenses/odbl/1-0/">Open Database License (ODbL)</a>.</div>
+  <div>© 2026 3Wood.</div>
+</footer>
+
+<script>
+  // Personal invite links: ?ref=<username> greets the invitee.
+  const ref = new URLSearchParams(location.search).get("ref");
+  if (ref && /^[a-z0-9_]{3,20}$/.test(ref)) {
+    const banner = document.getElementById("invite-banner");
+    banner.textContent = "⛳️ @" + ref + " invited you to join them on 3Wood";
+    banner.style.display = "block";
+  }
+</script>
+
+</body>
+</html>

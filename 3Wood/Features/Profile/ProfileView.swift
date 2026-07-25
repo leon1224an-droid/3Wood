@@ -6,6 +6,8 @@ struct ProfileView: View {
     @Environment(AppNavigation.self) private var nav
     @State private var stats: ProfileStats?
     @State private var wantToPlayCount: Int?
+    @State private var myPhone: String?
+    @State private var isEditingPhone = false
     @State private var isConfirmingDelete = false
     @State private var deleteError: String?
 
@@ -57,9 +59,24 @@ struct ProfileView: View {
                     NavigationLink(value: Destination.findFriends) {
                         Label("Find friends", systemImage: "person.badge.plus")
                     }
+                    Button {
+                        isEditingPhone = true
+                    } label: {
+                        HStack {
+                            Label("Phone number", systemImage: "phone")
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            Text(myPhone.map(PhoneNumber.display) ?? "Add")
+                                .foregroundStyle(.secondary)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                     NavigationLink(value: Destination.about) {
                         Label("About", systemImage: "info.circle")
                     }
+                } footer: {
+                    Text("Link your number so friends who have it in their contacts can find you.")
                 }
 
                 Section {
@@ -80,6 +97,9 @@ struct ProfileView: View {
             .onAppear { Task { await reloadCounts() } }
             .refreshable { await reloadCounts() }
             .appDestinations()
+            .sheet(isPresented: $isEditingPhone) {
+                PhoneLinkSheet(existing: myPhone) { myPhone = $0 }
+            }
             .confirmationDialog(
                 "Delete your account?",
                 isPresented: $isConfirmingDelete,
@@ -131,6 +151,7 @@ struct ProfileView: View {
         guard let myID else { return }
         stats = try? await SocialRepo.stats(of: myID)
         wantToPlayCount = (try? await WantToPlayRepo.list())?.count
+        myPhone = try? await PhoneRepo.myPhone()
     }
 
     private func deleteAccount() async {

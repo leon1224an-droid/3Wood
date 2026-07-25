@@ -2,55 +2,95 @@ import SwiftUI
 
 struct FindFriendsView: View {
     @Environment(Router.self) private var router
+    @Environment(SessionStore.self) private var session
     @State private var query = ""
     @State private var results: [ProfileSummary] = []
     @State private var searchTask: Task<Void, Never>?
     @State private var searchFailed = false
 
+    private var myUsername: String? {
+        if case .signedIn(let profile) = session.state { return profile.username }
+        return nil
+    }
+
     var body: some View {
-        // The row carries two independent tap targets (open profile / follow),
-        // so navigation is driven by an explicit tap gesture rather than a
-        // NavigationLink nested beside the button — the latter makes row taps
-        // unreliable in SwiftUI lists.
-        List($results) { $person in
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("@\(person.username)")
-                    if let name = person.displayName {
-                        Text(name)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+        List {
+            Section {
+                Button {
+                    router.push(.contacts)
+                } label: {
+                    HStack {
+                        Label("Find from contacts", systemImage: "person.crop.circle.badge.plus")
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption.bold())
+                            .foregroundStyle(.tertiary)
+                            .accessibilityHidden(true)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                ShareLink(
+                    item: Invite.link(from: myUsername),
+                    message: Text(Invite.message(from: myUsername))
+                ) {
+                    Label("Invite friends", systemImage: "paperplane")
+                        .foregroundStyle(.primary)
+                }
+            } footer: {
+                Text("Search by username, or match your contacts to see how your friends rate the courses you've played.")
+            }
+
+            if searchFailed, results.isEmpty {
+                Section {
+                    LoadFailedView { scheduleSearch() }
+                        .listRowBackground(Color.clear)
+                }
+            } else if !results.isEmpty {
+                // Each row carries two independent tap targets (open profile /
+                // follow), so navigation is driven by an explicit tap gesture
+                // rather than a NavigationLink nested beside the button — the
+                // latter makes row taps unreliable in SwiftUI lists.
+                Section("Results") {
+                    ForEach($results) { $person in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("@\(person.username)")
+                                if let name = person.displayName {
+                                    Text(name)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            Spacer()
+                            FollowButton(person: $person)
+                            Image(systemName: "chevron.right")
+                                .font(.caption.bold())
+                                .foregroundStyle(.tertiary)
+                                .accessibilityHidden(true)
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture { router.push(.person(person)) }
+                        .personRowAccessibility(person: $person) { router.push(.person(person)) }
+                        .listRowBackground(Color.clear)
+                        .listRowSeparatorTint(Color.sand)
                     }
                 }
-                Spacer()
-                FollowButton(person: $person)
-                Image(systemName: "chevron.right")
-                    .font(.caption.bold())
-                    .foregroundStyle(.tertiary)
-                    .accessibilityHidden(true)
+            } else if query.trimmingCharacters(in: .whitespaces).count >= 2 {
+                Section {
+                    Text("No one matched \"\(query)\".")
+                        .foregroundStyle(.secondary)
+                        .listRowBackground(Color.clear)
+                }
             }
-            .contentShape(Rectangle())
-            .onTapGesture { router.push(.person(person)) }
-            .personRowAccessibility(person: $person) { router.push(.person(person)) }
-            .listRowBackground(Color.clear)
-            .listRowSeparatorTint(Color.sand)
         }
         .listStyle(.plain)
         .creamScreen()
-        .searchable(text: $query, prompt: "Search by username")
+        .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always),
+                    prompt: "Search by username")
         .onChange(of: query) {
             scheduleSearch()
-        }
-        .overlay {
-            if searchFailed, results.isEmpty {
-                LoadFailedView { scheduleSearch() }
-            } else if results.isEmpty {
-                ContentUnavailableView(
-                    "Find friends",
-                    systemImage: "person.2",
-                    description: Text("See how your friends rate the courses you've played.")
-                )
-            }
         }
         .navigationTitle("Find friends")
         .navigationBarTitleDisplayMode(.inline)

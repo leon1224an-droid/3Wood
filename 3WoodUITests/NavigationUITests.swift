@@ -117,8 +117,15 @@ final class NavigationUITests: XCTestCase {
         goBack()
         XCTAssertTrue(app.navigationBars["Profile"].waitForExistence(timeout: timeout))
 
-        // --- Find friends → a friend's profile ---
+        // --- Find friends → contacts matching entry ---
         tap(app.buttons["Find friends"], "Find friends row")
+        tap(app.buttons["Find from contacts"], "Find from contacts row")
+        XCTAssertTrue(app.navigationBars["From Contacts"].waitForExistence(timeout: timeout),
+                      "Contacts matching screen did not open")
+        snapshot("27-Contacts")
+        goBack()
+
+        // --- Find friends → a friend's profile ---
         let friendSearch = app.searchFields.firstMatch
         tap(friendSearch, "Friend search field")
         friendSearch.typeText("mulligan")
