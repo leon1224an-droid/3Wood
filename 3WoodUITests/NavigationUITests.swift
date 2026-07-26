@@ -66,6 +66,18 @@ final class NavigationUITests: XCTestCase {
 
         XCTAssertTrue(app.tabBars.buttons["Lists"].waitForExistence(timeout: timeout),
                       "Did not reach the main tab bar after sign-in")
+
+        // Fresh simulators offer to save the password — dismiss so the
+        // sheet doesn't photobomb screenshots or block taps.
+        let notNow = app.buttons["Not Now"]
+        if notNow.waitForExistence(timeout: 3) {
+            notNow.tap()
+        } else {
+            let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+            if springboard.buttons["Not Now"].waitForExistence(timeout: 1) {
+                springboard.buttons["Not Now"].tap()
+            }
+        }
     }
 
     func testFullNavigation() {

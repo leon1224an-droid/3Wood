@@ -9,6 +9,9 @@ struct RankedCourse: Codable, Identifiable, Hashable, Sendable {
     let bucket: Bucket
     let rankPosition: Int
     let score: Double
+    /// When the course was logged. Optional: only my_ranked_courses returns
+    /// it (user_ranked_courses and older backends omit it).
+    var createdAt: Date?
 
     var id: Int { courseID }
 
@@ -16,6 +19,7 @@ struct RankedCourse: Codable, Identifiable, Hashable, Sendable {
         case courseID = "course_id"
         case name, city, state, bucket, score
         case rankPosition = "rank_position"
+        case createdAt = "created_at"
     }
 
     var locationText: String {

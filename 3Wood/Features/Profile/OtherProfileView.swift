@@ -70,7 +70,7 @@ struct OtherProfileView: View {
                                 Text("\(index + 1)")
                                     .font(.subheadline.monospacedDigit())
                                     .foregroundStyle(.secondary)
-                                    .frame(width: 24, alignment: .trailing)
+                                    .frame(minWidth: 24, alignment: .trailing)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(course.name).lineLimit(1)
                                     Text(course.locationText)

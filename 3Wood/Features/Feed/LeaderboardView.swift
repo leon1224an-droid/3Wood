@@ -2,6 +2,8 @@ import SwiftUI
 
 struct LeaderboardView: View {
     @Environment(Router.self) private var router
+    /// Rank roundel grows with the user's text size.
+    @ScaledMetric(relativeTo: .body) private var medalSize: CGFloat = 36
     @State private var entries: [LeaderboardEntry] = []
     @State private var isLoading = true
     @State private var loadFailed = false
@@ -25,11 +27,11 @@ struct LeaderboardView: View {
                                     .strokeBorder(medalColor(entry.rank), lineWidth: 1.5)
                             }
                             Text("\(entry.rank)")
-                                .font(.custom("Righteous-Regular", fixedSize: 17))
+                                .font(.custom("Righteous-Regular", size: 17, relativeTo: .body))
                                 .monospacedDigit()
                                 .foregroundStyle(medalColor(entry.rank))
                         }
-                        .frame(width: 36, height: 36)
+                        .frame(width: medalSize, height: medalSize)
                         VStack(alignment: .leading, spacing: 1) {
                             Text("@\(entry.username)")
                                 .fontWeight(entry.isMe ? .bold : .regular)

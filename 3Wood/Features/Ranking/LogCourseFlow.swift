@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 /// Full-screen modal driving: (optional) course pick → bucket pick →
 /// head-to-head comparisons → save → result.
@@ -35,6 +36,7 @@ struct LogCourseFlow: View {
                     }
                 case .done(let course, let score, let position, let bucket):
                     RankResultView(
+                        courseID: course.id,
                         courseName: course.name,
                         score: score,
                         position: position,
@@ -146,25 +148,31 @@ final class LogFlowModel {
 }
 
 /// Search-driven course picker for when the flow starts from the "+" button.
+/// Before the user types, suggests nearby courses (when location is already
+/// authorized — the picker never triggers the permission prompt itself).
 struct LogCoursePickerView: View {
     let onPick: (Course) -> Void
     @State private var viewModel = SearchViewModel()
+    @State private var nearby: [Course] = []
 
     var body: some View {
-        List(viewModel.results) { course in
-            Button {
-                onPick(course)
-            } label: {
-                CourseRow(course: course)
+        List {
+            if !viewModel.results.isEmpty {
+                ForEach(viewModel.results) { course in
+                    pickRow(course)
+                }
+            } else if viewModel.query.isEmpty, !nearby.isEmpty {
+                Section("Near you") {
+                    ForEach(nearby) { course in
+                        pickRow(course)
+                    }
+                }
             }
-            .foregroundStyle(.primary)
-            .listRowBackground(Color.clear)
-            .listRowSeparatorTint(Color.sand)
         }
         .listStyle(.plain)
         .searchable(text: $viewModel.query, prompt: "Which course did you play?")
         .overlay {
-            if viewModel.results.isEmpty {
+            if viewModel.results.isEmpty, viewModel.query.isEmpty ? nearby.isEmpty : true {
                 ContentUnavailableView(
                     "Find the course you played",
                     systemImage: "figure.golf",
@@ -172,5 +180,33 @@ struct LogCoursePickerView: View {
                 )
             }
         }
+        .task {
+            guard nearby.isEmpty,
+                  let location = await LocationProvider.shared.currentLocationIfAuthorized()
+            else { return }
+            let lat = location.coordinate.latitude
+            let lng = location.coordinate.longitude
+            let found = (try? await CourseRepo.inRegion(
+                minLat: lat - 0.4, minLng: lng - 0.5, maxLat: lat + 0.4, maxLng: lng + 0.5
+            )) ?? []
+            nearby = Array(
+                found.sorted {
+                    location.distance(from: CLLocation(latitude: $0.latitude, longitude: $0.longitude))
+                        < location.distance(from: CLLocation(latitude: $1.latitude, longitude: $1.longitude))
+                }
+                .prefix(15)
+            )
+        }
+    }
+
+    private func pickRow(_ course: Course) -> some View {
+        Button {
+            onPick(course)
+        } label: {
+            CourseRow(course: course)
+        }
+        .foregroundStyle(.primary)
+        .listRowBackground(Color.clear)
+        .listRowSeparatorTint(Color.sand)
     }
 }

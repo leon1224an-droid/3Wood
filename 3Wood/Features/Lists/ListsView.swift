@@ -7,8 +7,16 @@ struct ListsView: View {
         var id: String { rawValue }
     }
 
+    enum PlayedSort: String, CaseIterable, Identifiable {
+        case myRank = "My ranking"
+        case recent = "Recently logged"
+        case az = "A to Z"
+        var id: String { rawValue }
+    }
+
     @Environment(AppNavigation.self) private var nav
     @State private var segment: Segment = .played
+    @State private var playedSort: PlayedSort = .myRank
     @State private var ranked: [RankedCourse] = []
     @State private var wantToPlay: [Course] = []
     @State private var isLoggingCourse = false
@@ -31,6 +39,18 @@ struct ListsView: View {
             .creamScreen()
             .navigationTitle("My Courses")
             .toolbar {
+                if segment == .played, ranked.count > 1 {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Menu {
+                            Picker("Sort", selection: $playedSort) {
+                                ForEach(PlayedSort.allCases) { Text($0.rawValue).tag($0) }
+                            }
+                        } label: {
+                            Image(systemName: "arrow.up.arrow.down")
+                        }
+                        .accessibilityLabel("Sort courses")
+                    }
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         isLoggingCourse = true
@@ -134,13 +154,16 @@ struct ListsView: View {
             }
         } else {
             List {
-                ForEach(Array(ranked.enumerated()), id: \.element.id) { index, course in
+                ForEach(Array(sortedRanked.enumerated()), id: \.element.id) { index, course in
                     NavigationLink(value: Destination.courseID(course.courseID)) {
                         HStack(spacing: 12) {
-                            Text("\(index + 1)")
-                                .font(.headline.monospacedDigit())
-                                .foregroundStyle(.secondary)
-                                .frame(width: 28, alignment: .trailing)
+                            // Position numbers only make sense in ranking order.
+                            if playedSort == .myRank {
+                                Text("\(index + 1)")
+                                    .font(.headline.monospacedDigit())
+                                    .foregroundStyle(.secondary)
+                                    .frame(minWidth: 28, alignment: .trailing)
+                            }
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(course.name).lineLimit(1)
                                 Text(course.locationText)
@@ -188,6 +211,14 @@ struct ListsView: View {
             }
             .listStyle(.plain)
             .refreshable { await reload() }
+        }
+    }
+
+    private var sortedRanked: [RankedCourse] {
+        switch playedSort {
+        case .myRank: ranked
+        case .recent: ranked.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+        case .az: ranked.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         }
     }
 

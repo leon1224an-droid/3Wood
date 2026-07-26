@@ -5,6 +5,7 @@ import Supabase
 /// and the main app based on session state.
 struct RootView: View {
     @Environment(SessionStore.self) private var session
+    @State private var invitedPerson: ProfileSummary?
 
     var body: some View {
         @Bindable var session = session
@@ -32,13 +33,47 @@ struct RootView: View {
         .task {
             await session.start()
         }
-        // Password-recovery links (threewood://reset-password#...) hand their
-        // tokens to Supabase, which emits .passwordRecovery.
+        // threewood://invite?ref=<username> opens the inviter's profile;
+        // anything else (threewood://reset-password#...) hands its tokens to
+        // Supabase, which emits .passwordRecovery.
         .onOpenURL { url in
-            Task { try? await supa.auth.session(from: url) }
+            if url.scheme == "threewood", url.host == "invite" {
+                let ref = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                    .queryItems?.first { $0.name == "ref" }?.value
+                if let ref {
+                    Task { await openInvite(ref: ref) }
+                }
+            } else {
+                Task { try? await supa.auth.session(from: url) }
+            }
         }
         .sheet(isPresented: $session.needsPasswordReset) {
             UpdatePasswordView()
         }
+        .sheet(item: $invitedPerson) { person in
+            InviteProfileSheet(person: person)
+        }
+    }
+
+    private func openInvite(ref: String) async {
+        guard case .signedIn = session.state else { return }
+        let found = (try? await SocialRepo.searchProfiles(ref)) ?? []
+        invitedPerson = found.first { $0.username == ref.lowercased() }
+    }
+}
+
+/// Deep-link destination: a self-contained stack with its own router so the
+/// invited-to profile (and anything pushed from it) works outside the tabs.
+private struct InviteProfileSheet: View {
+    let person: ProfileSummary
+    @State private var router = Router()
+
+    var body: some View {
+        @Bindable var router = router
+        NavigationStack(path: $router.path) {
+            OtherProfileView(person: person)
+                .appDestinations()
+        }
+        .environment(router)
     }
 }

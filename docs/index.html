@@ -215,7 +215,15 @@
   const ref = new URLSearchParams(location.search).get("ref");
   if (ref && /^[a-z0-9_]{3,20}$/.test(ref)) {
     const banner = document.getElementById("invite-banner");
-    banner.textContent = "⛳️ @" + ref + " invited you to join them on 3Wood";
+    banner.textContent = "⛳️ @" + ref + " invited you to join them on 3Wood ";
+    // On iOS, offer to open the profile in the app if it's installed.
+    if (/iPhone|iPad/.test(navigator.userAgent)) {
+      const open = document.createElement("a");
+      open.href = "threewood://invite?ref=" + ref;
+      open.textContent = "— open in app";
+      open.style.cssText = "color:inherit;font-weight:600";
+      banner.appendChild(open);
+    }
     banner.style.display = "block";
   }
 </script>

@@ -1,11 +1,15 @@
 import SwiftUI
 
 struct RankResultView: View {
+    let courseID: Int
     let courseName: String
     let score: Double
     let position: Int
     let bucket: Bucket
     let onDone: () -> Void
+
+    @State private var isWritingReview = false
+    @State private var hasReviewed = false
 
     var body: some View {
         VStack(spacing: 24) {
@@ -32,6 +36,14 @@ struct RankResultView: View {
 
             Spacer()
 
+            // Strike while the round is fresh — reviews mostly happen here.
+            Button(hasReviewed ? "Review saved ✓" : "Write a review") {
+                isWritingReview = true
+            }
+            .font(.subheadline.weight(.medium))
+            .tint(Color.fairwayGreen)
+            .disabled(hasReviewed)
+
             Button {
                 onDone()
             } label: {
@@ -41,6 +53,11 @@ struct RankResultView: View {
         }
         .padding()
         .creamScreen()
+        .sheet(isPresented: $isWritingReview) {
+            WriteReviewSheet(courseID: courseID, existing: nil) {
+                hasReviewed = true
+            }
+        }
     }
 
     private var rule: some View {
@@ -62,5 +79,5 @@ struct RankResultView: View {
 }
 
 #Preview {
-    RankResultView(courseName: "Pebble Beach Golf Links", score: 8.4, position: 1, bucket: .liked) {}
+    RankResultView(courseID: 1, courseName: "Pebble Beach Golf Links", score: 8.4, position: 1, bucket: .liked) {}
 }

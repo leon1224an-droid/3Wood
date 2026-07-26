@@ -44,6 +44,7 @@ struct CourseMapView: View {
     @State private var typeFilter: CourseTypeFilter = .all
     @State private var citySearch = ""
     @State private var isSearchPresented = false
+    @State private var hasCenteredOnUser = false
     @State private var position: MapCameraPosition = .region(
         MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: 39.8, longitude: -98.6),
@@ -115,6 +116,18 @@ struct CourseMapView: View {
                 ToolbarItem(placement: .topBarTrailing) { modeToggle }
             }
             .appDestinations()
+            // First open: land on the user's area instead of the whole US.
+            .task {
+                guard !hasCenteredOnUser else { return }
+                hasCenteredOnUser = true
+                guard let location = await LocationProvider.shared.currentLocation() else { return }
+                let region = MKCoordinateRegion(
+                    center: location.coordinate,
+                    span: MKCoordinateSpan(latitudeDelta: 0.35, longitudeDelta: 0.35)
+                )
+                position = .region(region)
+                viewModel.regionChanged(region)
+            }
         }
         .environment(router)
     }
