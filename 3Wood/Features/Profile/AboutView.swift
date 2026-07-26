@@ -37,7 +37,7 @@ struct AboutView: View {
             }
 
             Section("Support") {
-                Link("Contact support", destination: URL(string: "mailto:leon1224an@gmail.com")!)
+                Link("Contact support", destination: URL(string: "mailto:3woodapp@gmail.com")!)
             }
 
             Section("Open source") {
