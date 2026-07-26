@@ -75,7 +75,9 @@ feed, course detail, friend profile, ranked list, map. Re-capture on
 "iPhone 17 Pro Max" simulator for final 1320×2868 assets before submission.
 
 ## Review notes (for App Review)
-- Demo account: create on hosted Supabase before submission (see launch checklist).
+- Demo account (hosted): `appreview@example.com` / `3WoodReview2026`
+  (username @demo_reviewer, pre-seeded with a ranked course, a bookmark,
+  and a review).
 - UGC moderation: report + block on all user content (Guideline 1.2) — reports
   reviewed within 24 hours via Supabase dashboard.
 - Contacts permission is optional; all features work without it except
