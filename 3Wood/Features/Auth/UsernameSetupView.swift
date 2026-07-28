@@ -14,6 +14,17 @@ struct UsernameSetupView: View {
         username.wholeMatch(of: /[a-z0-9_]{3,20}/) != nil
     }
 
+    /// The real keyboard sneaks in capitals, spaces, and smart punctuation —
+    /// normalize instead of silently disabling the button over an invisible
+    /// character.
+    private func sanitize(_ raw: String) -> String {
+        String(
+            raw.lowercased()
+                .filter { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "_") }
+                .prefix(20)
+        )
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -21,6 +32,11 @@ struct UsernameSetupView: View {
                     TextField("username", text: $username)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                        .keyboardType(.asciiCapable)
+                        .onChange(of: username) {
+                            let cleaned = sanitize(username)
+                            if cleaned != username { username = cleaned }
+                        }
                 } header: {
                     Text("Choose a username")
                 } footer: {
