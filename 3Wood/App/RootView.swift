@@ -58,7 +58,7 @@ struct RootView: View {
     private func openInvite(ref: String) async {
         guard case .signedIn = session.state else { return }
         let found = (try? await SocialRepo.searchProfiles(ref)) ?? []
-        invitedPerson = found.first { $0.username == ref.lowercased() }
+        invitedPerson = found.first { $0.username.caseInsensitiveCompare(ref) == .orderedSame }
     }
 }
 

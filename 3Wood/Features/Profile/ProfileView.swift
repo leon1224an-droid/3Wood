@@ -8,13 +8,16 @@ struct ProfileView: View {
     @State private var wantToPlayCount: Int?
     @State private var myPhone: String?
     @State private var isEditingPhone = false
+    @State private var isEditingUsername = false
     @State private var isConfirmingDelete = false
     @State private var deleteError: String?
 
-    private var myID: UUID? {
-        if case .signedIn(let profile) = session.state { return profile.id }
+    private var myProfile: Profile? {
+        if case .signedIn(let profile) = session.state { return profile }
         return nil
     }
+
+    private var myID: UUID? { myProfile?.id }
 
     var body: some View {
         @Bindable var router = nav.profileRouter
@@ -60,6 +63,17 @@ struct ProfileView: View {
                         Label("Find friends", systemImage: "person.badge.plus")
                     }
                     Button {
+                        isEditingUsername = true
+                    } label: {
+                        HStack {
+                            Label("Change username", systemImage: "pencil")
+                                .foregroundStyle(.primary)
+                            Spacer()
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    Button {
                         isEditingPhone = true
                     } label: {
                         HStack {
@@ -99,6 +113,11 @@ struct ProfileView: View {
             .appDestinations()
             .sheet(isPresented: $isEditingPhone) {
                 PhoneLinkSheet(existing: myPhone) { myPhone = $0 }
+            }
+            .sheet(isPresented: $isEditingUsername) {
+                if let myProfile {
+                    EditUsernameSheet(profile: myProfile)
+                }
             }
             .confirmationDialog(
                 "Delete your account?",

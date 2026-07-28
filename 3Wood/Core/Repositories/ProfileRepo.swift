@@ -12,6 +12,16 @@ enum ProfileRepo {
         return profiles.first
     }
 
+    static func updateUsername(userID: UUID, username: String) async throws -> Profile {
+        try await supa.from("profiles")
+            .update(["username": username])
+            .eq("id", value: userID)
+            .select()
+            .single()
+            .execute()
+            .value
+    }
+
     static func create(userID: UUID, username: String) async throws -> Profile {
         struct NewProfile: Encodable {
             let id: UUID
