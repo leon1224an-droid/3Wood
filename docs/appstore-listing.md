@@ -75,9 +75,17 @@ feed, course detail, friend profile, ranked list, map. Re-capture on
 "iPhone 17 Pro Max" simulator for final 1320×2868 assets before submission.
 
 ## Review notes (for App Review)
-- Demo account (hosted): `appreview@example.com` / `3WoodReview2026`
-  (username @demo_reviewer, pre-seeded with a ranked course, a bookmark,
-  and a review).
+- Demo account (hosted): `3woodapp+review@gmail.com`, username **@demo_golfer**.
+  Seeded 2026-08-02 and verified signing in: Pebble Beach 9.2, Spyglass Hill
+  7.5, Torrey Pines North 5.0, Bethpage bookmarked, one review on Pebble.
+  **The password is not recorded here — this repo is public.** It lives in App
+  Store Connect → App Information → App Review Information, which is where
+  reviewers read it from anyway. (The previous account, `appreview@example.com`,
+  stopped authenticating and its password was committed here in plaintext;
+  don't repeat that.)
+  **Re-check this account signs in before every submission.** Reviewers are
+  asked to test account deletion (5.1.1(v)), and the app's own Delete Account
+  button will remove it — if that happens, recreate it and update this note.
 - UGC moderation: report + block on all user content (Guideline 1.2) — reports
   reviewed within 24 hours via Supabase dashboard.
 - Contacts permission is optional; all features work without it except
