@@ -23,8 +23,17 @@ enum WantToPlayRepo {
             let course_id: Int
         }
         guard let userID = supa.auth.currentSession?.user.id else { return }
+        // Idempotent: swipe-to-save rows in search/map results don't know
+        // whether a course is already bookmarked, and the (user_id, course_id)
+        // primary key would reject the second insert as an error — which it
+        // isn't, from the user's side. `ignoreDuplicates` keeps this an
+        // INSERT ... ON CONFLICT DO NOTHING, so it needs no UPDATE grant.
         try await supa.from("want_to_play")
-            .insert(Row(user_id: userID, course_id: courseID))
+            .upsert(
+                Row(user_id: userID, course_id: courseID),
+                onConflict: "user_id,course_id",
+                ignoreDuplicates: true
+            )
             .execute()
     }
 

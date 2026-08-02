@@ -77,8 +77,21 @@ struct ProfileView: View {
                         isEditingPhone = true
                     } label: {
                         HStack {
-                            Label("Phone number", systemImage: "phone")
-                                .foregroundStyle(.primary)
+                            // The "why" sits on the row itself — as a section
+                            // footer it was three rows adrift from the control
+                            // it described, and read as boilerplate. The full
+                            // explanation still lives in PhoneLinkSheet.
+                            Label {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Phone number")
+                                    Text("Lets friends find you by number")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            } icon: {
+                                Image(systemName: "phone")
+                            }
+                            .foregroundStyle(.primary)
                             Spacer()
                             Text(myPhone.map(PhoneNumber.display) ?? "Add")
                                 .foregroundStyle(.secondary)
@@ -89,8 +102,6 @@ struct ProfileView: View {
                     NavigationLink(value: Destination.about) {
                         Label("About", systemImage: "info.circle")
                     }
-                } footer: {
-                    Text("Link your number so friends who have it in their contacts can find you.")
                 }
 
                 Section {
