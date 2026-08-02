@@ -30,6 +30,78 @@ struct LiveBackendTests {
         return data
     }
 
+    /// Raw REST call against a table, returning body + status.
+    private func rest(
+        _ method: String, _ path: String, token: String,
+        body: Data? = nil, prefer: String? = nil
+    ) async throws -> (Data, Int) {
+        var request = URLRequest(url: Config.supabaseURL.appendingPathComponent("rest/v1/\(path)"))
+        request.httpMethod = method
+        request.setValue(Config.supabaseAnonKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let prefer { request.setValue(prefer, forHTTPHeaderField: "Prefer") }
+        request.httpBody = body
+        let (data, response) = try await URLSession.shared.data(for: request)
+        return (data, (response as? HTTPURLResponse)?.statusCode ?? 0)
+    }
+
+    /// Swipe-to-save adds a course without knowing whether it is already
+    /// bookmarked, so WantToPlayRepo.add upserts with ignore-duplicates.
+    /// That resolution has to survive the (user_id, course_id) primary key
+    /// *and* the fact that want_to_play grants insert but not update —
+    /// a mismatch there fails at runtime, not compile time.
+    @Test func repeatedWantToPlayInsertIsIdempotent() async throws {
+        let token = try await accessToken()
+
+        let searched = try await callRPC("search_courses", body: ["p_query": "pebble beach"], token: token)
+        let course = try #require(try JSONDecoder().decode([Course].self, from: searched).first)
+
+        // Restore whatever state the fixture user was in afterwards.
+        let (existingData, _) = try await rest("POST", "rpc/my_want_to_play", token: token, body: Data("{}".utf8))
+        let wasSavedAlready = (try? JSONDecoder().decode([Course].self, from: existingData))?
+            .contains { $0.id == course.id } ?? false
+
+        // Same Prefer header supabase-swift sends for
+        // upsert(ignoreDuplicates: true) — INSERT ... ON CONFLICT DO NOTHING.
+        let prefer = "resolution=ignore-duplicates,return=minimal"
+
+        let first = try await rest(
+            "POST", "want_to_play", token: token,
+            body: try insertBody(courseID: course.id, token: token), prefer: prefer
+        )
+        #expect(first.1 == 201, "first insert failed: \(String(decoding: first.0, as: UTF8.self))")
+
+        let second = try await rest(
+            "POST", "want_to_play", token: token,
+            body: try insertBody(courseID: course.id, token: token), prefer: prefer
+        )
+        #expect(second.1 == 201,
+                "duplicate insert was rejected — swipe-to-save would surface an error: \(String(decoding: second.0, as: UTF8.self))")
+
+        if !wasSavedAlready {
+            _ = try await rest("DELETE", "want_to_play?course_id=eq.\(course.id)", token: token)
+        }
+    }
+
+    /// The insert body the app sends: explicit user_id, taken from the JWT.
+    private func insertBody(courseID: Int, token: String) throws -> Data {
+        let userID = try Self.subject(ofJWT: token)
+        return Data("{\"user_id\":\"\(userID)\",\"course_id\":\(courseID)}".utf8)
+    }
+
+    /// Pulls `sub` out of the access token so the test doesn't need a separate
+    /// profile lookup.
+    private static func subject(ofJWT token: String) throws -> String {
+        let parts = token.split(separator: ".")
+        var payload = String(parts[1])
+        while payload.count % 4 != 0 { payload += "=" }
+        let data = try #require(Data(base64Encoded: payload.replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")))
+        struct Claims: Decodable { let sub: String }
+        return try JSONDecoder().decode(Claims.self, from: data).sub
+    }
+
     @Test func courseModelDecodesLiveSearchResults() async throws {
         let token = try await accessToken()
         let data = try await callRPC("search_courses", body: ["p_query": "pebble beach"], token: token)

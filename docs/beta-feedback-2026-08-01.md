@@ -26,7 +26,7 @@ anything else. Sequence it first or those three items each pay the cost separate
 
 ---
 
-## Tranche 1 — quick wins ✅ SHIPPED (branch `beta-feedback-tranche-1`)
+## Tranche 1 — quick wins — implemented on `beta-feedback-tranche-1`, not merged
 
 | # | Feedback | Where | Fix |
 |---|---|---|---|
@@ -62,7 +62,21 @@ anything else. Sequence it first or those three items each pay the cost separate
 
 ### Verification
 
-`xcodebuild test` — all 6 `NavigationUITests` pass. The suite attaches a screenshot
+`xcodebuild test` — 16 unit tests in 3 suites plus all 6 `NavigationUITests` pass.
+(The unit bundle is Swift Testing, so it reports as `✔ Test run with 16 tests`
+rather than XCTest's `Executed N tests` — easy to misread as "not running".)
+
+`LiveBackendTests.repeatedWantToPlayInsertIsIdempotent` is new: it inserts the same
+`want_to_play` row twice against the real backend with the exact `Prefer` header
+supabase-swift sends, because `want_to_play` grants INSERT but not UPDATE and a
+wrong resolution there fails at runtime, not compile time. Checked that the test
+discriminates — with the header removed it fails on the duplicate (409), so it
+would catch a revert to plain `.insert`.
+
+Note the swipe path is exercised at the repo/RLS layer, not through the SwiftUI
+gesture; `QuickSaveState` itself has no test.
+
+All 6 `NavigationUITests` pass. The suite attaches a screenshot
 per screen, so the changed surfaces were checked visually from the result bundle
 (`06-Profile`, `07-FindFriends`, `05-Map`, `03-Search-Results`). Note the map
 snapshot still shows the continental US: the simulator has no location fix, so
@@ -70,6 +84,11 @@ snapshot still shows the continental US: the simulator has no location fix, so
 false so a later attempt can still center. **Untested in the simulator:** the pin
 tap targets and swipe-to-save both need a device with a real location and a
 zoomed-in map; worth a pass on the phone before pushing a build.
+
+One known limit of the tap-target fix: the 44pt hit areas overlap between adjacent
+pins in dense metros, and the topmost in z-order wins. Still strictly better than a
+12pt dot, but clustered courses won't feel fully fixed — clustering or
+zoom-dependent sizing is the real answer if testers raise it again.
 
 ## Recommended order
 
