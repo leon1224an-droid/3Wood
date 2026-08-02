@@ -26,14 +26,14 @@ anything else. Sequence it first or those three items each pay the cost separate
 
 ---
 
-## Tranche 1 — quick wins (no migration, ~half a day)
+## Tranche 1 — quick wins ✅ SHIPPED (branch `beta-feedback-tranche-1`)
 
 | # | Feedback | Where | Fix |
 |---|---|---|---|
 | 9 | "Tapping on courses not very sensitive" | `CourseMapView.swift` map annotations | Unrated pins are a **12×12** `Circle`; `ScoreBadge(compact:)` is not much larger. Both far under the 44pt minimum. Wrap in a ≥44pt frame with transparent padding + `.contentShape(Rectangle())`. Highest value-per-line on the list. |
 | 8 | "Easier way to add to want-to-play from the list" | `CourseRow` (`SearchView.swift`), map list mode | Add a leading swipe action → `WantToPlayRepo.add`. One decision: `CourseRow` doesn't know bookmark state, so either go optimistic (show a checkmark, don't re-fetch) or extend the course query with an `is_saved` flag. Optimistic is the cheap correct answer. |
 | 10 | "Link your number text is wordy and not next to phone number" | `ProfileView.swift` — Section `footer:` | Confirmed: the copy sits in the section footer, three rows below the "Phone number" row it describes. Move it inline as row subtext and cut it to ~5 words ("Friends can find you by number"). The longer explanation already exists in `PhoneLinkSheet`'s own footer, so nothing is lost. |
-| 6 | "When finding friends through contacts, ability to go back" | `ContactsMatchView.swift` | **Needs one clarifying question.** `.contacts` is a normal `Router.push`, so a system back button should be present. Candidates: (a) they meant `FindFriendsView`, where an active `.searchable` replaces the back button with Cancel; (b) they meant backing out of the contacts permission state; (c) edge-swipe not registering. Ask which screen before coding — a blind fix here is guessing. |
+| 6 | "When finding friends through contacts, ability to go back" | `FindFriendsView.swift` | **Cause confirmed from UI-test screenshots, no tester question needed.** `ContactsMatchView` has a normal back button (see snapshot `27-Contacts`). The screen that loses it is `FindFriendsView`: snapshot `07-FindFriends` shows that once the search field is focused, the whole navigation bar is replaced by a lone dismiss-search "✕" — the route *to* contacts is the dead end, not contacts itself. Fixed with `.searchPresentationToolbarBehavior(.avoidHidingContent)`, availability-guarded since the deployment target is 17.0 and the modifier is 17.1+. Re-ran the test: back chevron and title now stay put with the keyboard up. |
 
 ## Tranche 2 — cheap backend (~1 migration each)
 
@@ -59,6 +59,17 @@ anything else. Sequence it first or those three items each pay the cost separate
 | 5 | Add photos to golf courses | **Most expensive item, and it's not close.** Supabase Storage bucket + RLS + upload/compression + a moderation path. `ModerationRepo` and the review-report flow exist because UGC already required them; photos raise that bar (image moderation, EXIF stripping). Plan it as its own release. |
 
 ---
+
+### Verification
+
+`xcodebuild test` — all 6 `NavigationUITests` pass. The suite attaches a screenshot
+per screen, so the changed surfaces were checked visually from the result bundle
+(`06-Profile`, `07-FindFriends`, `05-Map`, `03-Search-Results`). Note the map
+snapshot still shows the continental US: the simulator has no location fix, so
+`currentLocation()` returns nil — which now correctly leaves `hasCenteredOnUser`
+false so a later attempt can still center. **Untested in the simulator:** the pin
+tap targets and swipe-to-save both need a device with a real location and a
+zoomed-in map; worth a pass on the phone before pushing a build.
 
 ## Recommended order
 
