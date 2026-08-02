@@ -352,6 +352,19 @@ final class NavigationUITests: XCTestCase {
         XCTAssertTrue(app.cells.element(boundBy: 0).waitForExistence(timeout: timeout),
                       "Alert feed is empty")
         snapshot("32-Alerts")
+
+        // Tapping an engagement alert deep-links to the activity it happened
+        // on — covers the single-activity RPC, its loader and the router case,
+        // none of which the feed's own push exercises.
+        let engagement = app.cells.containing(
+            NSPredicate(format: "label CONTAINS 'reacted' OR label CONTAINS 'commented'")
+        ).firstMatch
+        if engagement.waitForExistence(timeout: 5) {
+            engagement.tap()
+            XCTAssertTrue(app.navigationBars["Activity"].waitForExistence(timeout: timeout),
+                          "Alert did not open the activity it points at")
+            snapshot("33-Alert-Activity")
+        }
     }
 
     /// Verifies course reviews display and the review editor opens.

@@ -83,3 +83,13 @@ feed, course detail, friend profile, ranked list, map. Re-capture on
 - Contacts permission is optional; all features work without it except
   "Find from contacts."
 ```
+
+
+## User-generated content (update 2026-08-02)
+
+3Wood now carries three kinds of user-generated content: course reviews, comments
+on activity, and **course photos**. All three are reportable in-app (Report action
+on each item), users can be blocked, and blocked users' content is filtered
+server-side. Photos are re-encoded on device before upload, which strips EXIF —
+no location metadata leaves the phone with an image. Mention all three in the App
+Review notes, not just reviews.
