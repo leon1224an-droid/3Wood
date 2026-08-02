@@ -179,8 +179,9 @@ final class NavigationUITests: XCTestCase {
         ensureSignedInAsDemo()
         switchToTab("Lists")
 
-        // Open the log flow via the + button (labeled for VoiceOver).
-        tap(app.navigationBars.buttons["Log a course"], "Add (+) button")
+        // The + is a menu now: played vs want-to-play.
+        tap(app.navigationBars.buttons["Add a course"], "Add (+) menu")
+        tap(app.buttons["Log a played course"], "Log a played course menu item")
 
         let picker = app.searchFields.firstMatch
         tap(picker, "Course picker search")
@@ -214,6 +215,33 @@ final class NavigationUITests: XCTestCase {
         // Back on the tab bar.
         XCTAssertTrue(app.tabBars.buttons["Lists"].waitForExistence(timeout: timeout),
                       "Did not return to the app after logging")
+    }
+
+    /// The other half of the "+" menu: saving a course to Want to Play
+    /// without opening it first.
+    func testAddToWantToPlayFromList() {
+        ensureSignedInAsDemo()
+        switchToTab("Lists")
+
+        tap(app.navigationBars.buttons["Add a course"], "Add (+) menu")
+        tap(app.buttons["Add to Want to Play"], "Add to Want to Play menu item")
+
+        XCTAssertTrue(app.navigationBars["Want to Play"].waitForExistence(timeout: timeout),
+                      "Want to Play picker did not open")
+        let picker = app.searchFields.firstMatch
+        tap(picker, "Course picker search")
+        picker.typeText("erin hills")
+        let target = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Erin Hills'")).firstMatch
+        XCTAssertTrue(target.waitForExistence(timeout: timeout), "Picker returned no Erin Hills")
+        snapshot("28-WantToPlay-Picker")
+        target.tap()
+
+        // Saving lands the user on the Want to Play segment so the add is visible.
+        XCTAssertTrue(app.navigationBars["My Courses"].waitForExistence(timeout: timeout),
+                      "Did not return to the list after saving")
+        XCTAssertTrue(app.cells.element(boundBy: 0).waitForExistence(timeout: timeout),
+                      "Want to Play list is empty after saving")
+        snapshot("29-WantToPlay-AfterAdd")
     }
 
     /// Verifies the quality-of-life additions: tappable Played rows, the

@@ -31,7 +31,7 @@ anything else. Sequence it first or those three items each pay the cost separate
 | # | Feedback | Where | Fix |
 |---|---|---|---|
 | 9 | "Tapping on courses not very sensitive" | `CourseMapView.swift` map annotations | Unrated pins are a **12×12** `Circle`; `ScoreBadge(compact:)` is not much larger. Both far under the 44pt minimum. Wrap in a ≥44pt frame with transparent padding + `.contentShape(Rectangle())`. Highest value-per-line on the list. |
-| 8 | "Easier way to add to want-to-play from the list" | `CourseRow` (`SearchView.swift`), map list mode | Add a leading swipe action → `WantToPlayRepo.add`. One decision: `CourseRow` doesn't know bookmark state, so either go optimistic (show a checkmark, don't re-fetch) or extend the course query with an `is_saved` flag. Optimistic is the cheap correct answer. |
+| 8 | "Easier way to add to want-to-play from the list" | `CourseRow` (`SearchView.swift`), map list mode, `ListsView` | Two routes, both shipped. (a) Leading swipe on any search/map row → `WantToPlayRepo.add`, optimistic since `CourseRow` doesn't know bookmark state. (b) **Follow-up from the user:** the Lists `+` was log-only, leaving Want to Play addable only from a course's own page — it's now a menu (Log a played course / Add to Want to Play) feeding a shared `CoursePickerView`. Adding lands you on the Want to Play segment so the save is visible. Guard: logging a course clears it from Want to Play server-side (`insert_ranking`), so the sheet refuses a course already in Played rather than putting it in both lists. |
 | 10 | "Link your number text is wordy and not next to phone number" | `ProfileView.swift` — Section `footer:` | Confirmed: the copy sits in the section footer, three rows below the "Phone number" row it describes. Move it inline as row subtext and cut it to ~5 words ("Friends can find you by number"). The longer explanation already exists in `PhoneLinkSheet`'s own footer, so nothing is lost. |
 | 6 | "When finding friends through contacts, ability to go back" | `FindFriendsView.swift` | **Cause confirmed from UI-test screenshots, no tester question needed.** `ContactsMatchView` has a normal back button (see snapshot `27-Contacts`). The screen that loses it is `FindFriendsView`: snapshot `07-FindFriends` shows that once the search field is focused, the whole navigation bar is replaced by a lone dismiss-search "✕" — the route *to* contacts is the dead end, not contacts itself. Fixed with `.searchPresentationToolbarBehavior(.avoidHidingContent)`, availability-guarded since the deployment target is 17.0 and the modifier is 17.1+. Re-ran the test: back chevron and title now stay put with the keyboard up. |
 
@@ -54,6 +54,12 @@ untouched. Verified: after a re-rank, `first_ranked_at` was still 200 days old w
 |---|---|---|
 | 4 | Weekly + all-time contributor rankings | `leaderboard(p_period text default 'all')`. The parameter is **defaulted on purpose**: TestFlight build 2 is in the wild calling `leaderboard()` with no arguments, and a defaulted parameter keeps that call resolving. Confirmed against PostgREST rather than assumed — the no-arg POST returns 200 after the migration. `LeaderboardView` gets This Week / All Time tabs. |
 | 3 | Week streak of adding courses | `streak_weeks(p_user uuid default null)` — gaps-and-islands over distinct log weeks. Shown as a chip on `ProfileView`. The `p_user` parameter costs nothing now and is what a streak-on-the-leaderboard would need later. |
+
+The streak first shipped as a bordered capsule beside the follower chips. The user
+pushed back — it borrowed the shape of two *buttons*, which made a read-only stat
+look tappable, and the extra row pushed the header around. It's now plain gold text
+inline on the `@username` line, with no outline. Copy is "4-week streak" (attributive
+singular), not "4 weeks streak".
 
 **Streak definition (decided, not defaulted into):** consecutive calendar weeks
 containing at least one *newly added* course. The current week counts once it has a

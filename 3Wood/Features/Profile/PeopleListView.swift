@@ -2,34 +2,6 @@ import SwiftUI
 
 /// Flat capsule stat chip: bold count + label, ruled in sand. Shared by the
 /// own-profile and other-profile headers so the two screens stay in step.
-/// Consecutive weeks the user has added a new course. Sits beside the
-/// follower chips and simply isn't drawn when the streak is zero — a "0 week
-/// streak" is a worse thing to show someone than no streak at all.
-struct StreakChip: View {
-    let weeks: Int
-
-    var body: some View {
-        HStack(spacing: 5) {
-            Image(systemName: "flame.fill")
-                .font(.caption)
-                .foregroundStyle(Color.sunriseGold)
-            Text("^[\(weeks) week](inflect: true)")
-                .font(.subheadline.weight(.semibold))
-                .monospacedDigit()
-                .foregroundStyle(Color.darkPine)
-            Text("streak")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color.cream, in: Capsule())
-        .overlay(Capsule().strokeBorder(Color.sand, lineWidth: 1))
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("^[\(weeks) week](inflect: true) streak of adding courses")
-    }
-}
-
 struct FollowChip: View {
     let count: Int?
     let label: String

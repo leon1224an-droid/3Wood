@@ -30,8 +30,14 @@ struct ProfileView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(profile.displayName ?? profile.username)
                                     .font(.title2.bold())
-                                Text("@\(profile.username)")
-                                    .foregroundStyle(.secondary)
+                                HStack(spacing: 8) {
+                                    Text("@\(profile.username)")
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                    if let weekStreak, weekStreak > 0 {
+                                        StreakBadge(weeks: weekStreak)
+                                    }
+                                }
                             }
                             // Buttons + router push (not NavigationLink) so
                             // the List doesn't bolt a chevron onto each chip.
@@ -48,12 +54,6 @@ struct ProfileView: View {
                                     FollowChip(count: stats?.following, label: "Following")
                                 }
                                 .buttonStyle(.plain)
-                            }
-                            // Its own line: the follower chips already split the
-                            // width evenly, and a third item squeezes them at
-                            // larger text sizes.
-                            if let weekStreak, weekStreak > 0 {
-                                StreakChip(weeks: weekStreak)
                             }
                         }
                         .padding(.vertical, 6)
@@ -199,5 +199,32 @@ struct ProfileView: View {
         } catch {
             deleteError = error.localizedDescription
         }
+    }
+}
+
+/// Inline streak marker, sitting on the @username line.
+///
+/// Deliberately *not* shaped like FollowChip: those capsules are buttons, and
+/// borrowing their outline made a read-only stat look tappable. This is plain
+/// tinted text — gold is the design system's award colour — so it reads as a
+/// property of the person rather than a control.
+///
+/// Not drawn at all when the streak is zero; "0 weeks" is worse than silence.
+struct StreakBadge: View {
+    let weeks: Int
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: "flame.fill")
+                .font(.caption2)
+            // "4-week streak", not "4 weeks streak" — attributive, so the
+            // noun stays singular however many weeks it is.
+            Text("\(weeks)-week streak")
+                .font(.subheadline.weight(.medium))
+                .monospacedDigit()
+        }
+        .foregroundStyle(Color.sunriseGold)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("^[\(weeks) week](inflect: true) streak of adding courses")
     }
 }
