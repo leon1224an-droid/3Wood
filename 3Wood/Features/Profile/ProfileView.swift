@@ -5,6 +5,7 @@ struct ProfileView: View {
     @Environment(SessionStore.self) private var session
     @Environment(AppNavigation.self) private var nav
     @State private var stats: ProfileStats?
+    @State private var weekStreak: Int?
     @State private var wantToPlayCount: Int?
     @State private var myPhone: String?
     @State private var isEditingPhone = false
@@ -29,8 +30,14 @@ struct ProfileView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(profile.displayName ?? profile.username)
                                     .font(.title2.bold())
-                                Text("@\(profile.username)")
-                                    .foregroundStyle(.secondary)
+                                HStack(spacing: 8) {
+                                    Text("@\(profile.username)")
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                    if let weekStreak, weekStreak > 0 {
+                                        StreakBadge(weeks: weekStreak)
+                                    }
+                                }
                             }
                             // Buttons + router push (not NavigationLink) so
                             // the List doesn't bolt a chevron onto each chip.
@@ -77,8 +84,21 @@ struct ProfileView: View {
                         isEditingPhone = true
                     } label: {
                         HStack {
-                            Label("Phone number", systemImage: "phone")
-                                .foregroundStyle(.primary)
+                            // The "why" sits on the row itself — as a section
+                            // footer it was three rows adrift from the control
+                            // it described, and read as boilerplate. The full
+                            // explanation still lives in PhoneLinkSheet.
+                            Label {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Phone number")
+                                    Text("Lets friends find you by number")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            } icon: {
+                                Image(systemName: "phone")
+                            }
+                            .foregroundStyle(.primary)
                             Spacer()
                             Text(myPhone.map(PhoneNumber.display) ?? "Add")
                                 .foregroundStyle(.secondary)
@@ -89,8 +109,6 @@ struct ProfileView: View {
                     NavigationLink(value: Destination.about) {
                         Label("About", systemImage: "info.circle")
                     }
-                } footer: {
-                    Text("Link your number so friends who have it in their contacts can find you.")
                 }
 
                 Section {
@@ -169,6 +187,7 @@ struct ProfileView: View {
     private func reloadCounts() async {
         guard let myID else { return }
         stats = try? await SocialRepo.stats(of: myID)
+        weekStreak = try? await FeedRepo.weekStreak()
         wantToPlayCount = (try? await WantToPlayRepo.list())?.count
         myPhone = try? await PhoneRepo.myPhone()
     }
@@ -180,5 +199,32 @@ struct ProfileView: View {
         } catch {
             deleteError = error.localizedDescription
         }
+    }
+}
+
+/// Inline streak marker, sitting on the @username line.
+///
+/// Deliberately *not* shaped like FollowChip: those capsules are buttons, and
+/// borrowing their outline made a read-only stat look tappable. This is plain
+/// tinted text — gold is the design system's award colour — so it reads as a
+/// property of the person rather than a control.
+///
+/// Not drawn at all when the streak is zero; "0 weeks" is worse than silence.
+struct StreakBadge: View {
+    let weeks: Int
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: "flame.fill")
+                .font(.caption2)
+            // "4-week streak", not "4 weeks streak" — attributive, so the
+            // noun stays singular however many weeks it is.
+            Text("\(weeks)-week streak")
+                .font(.subheadline.weight(.medium))
+                .monospacedDigit()
+        }
+        .foregroundStyle(Color.sunriseGold)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("^[\(weeks) week](inflect: true) streak of adding courses")
     }
 }

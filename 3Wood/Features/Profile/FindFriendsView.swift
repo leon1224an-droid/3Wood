@@ -89,6 +89,7 @@ struct FindFriendsView: View {
         .creamScreen()
         .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always),
                     prompt: "Search by username")
+        .keepsBackButtonDuringSearch()
         .onChange(of: query) {
             scheduleSearch()
         }
@@ -121,6 +122,20 @@ struct FindFriendsView: View {
 }
 
 extension View {
+    /// Keeps the navigation bar's back button on screen while the search
+    /// field is focused. By default a focused search field takes over the
+    /// bar, leaving only a dismiss-search "✕" — which is why testers reported
+    /// no way back out of the find-friends flow. Deployment target is 17.0,
+    /// so the modifier is guarded; on 17.0 the behaviour is unchanged.
+    @ViewBuilder
+    func keepsBackButtonDuringSearch() -> some View {
+        if #available(iOS 17.1, *) {
+            self.searchPresentationToolbarBehavior(.avoidHidingContent)
+        } else {
+            self
+        }
+    }
+
     /// VoiceOver support for people rows that navigate via a tap gesture:
     /// exposes the row as one button that opens the profile, with
     /// follow/unfollow as a custom action.

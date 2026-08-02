@@ -20,6 +20,7 @@ struct ListsView: View {
     @State private var ranked: [RankedCourse] = []
     @State private var wantToPlay: [Course] = []
     @State private var isLoggingCourse = false
+    @State private var isAddingWantToPlay = false
     @State private var hasLoaded = false
     @State private var loadFailed = false
     @State private var pendingRemoval: RankedCourse?
@@ -52,12 +53,25 @@ struct ListsView: View {
                     }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        isLoggingCourse = true
+                    // Both lists are added to from here. Logging used to be the
+                    // only thing "+" did, which left Want to Play reachable
+                    // only from a course's own page.
+                    Menu {
+                        Button {
+                            isLoggingCourse = true
+                        } label: {
+                            Label("Log a played course", systemImage: "flag.checkered")
+                        }
+                        Button {
+                            isAddingWantToPlay = true
+                        } label: {
+                            Label("Add to Want to Play", systemImage: "bookmark")
+                        }
                     } label: {
                         Image(systemName: "plus")
                     }
-                    .accessibilityLabel("Log a course")
+                    .accessibilityLabel("Add a course")
+                    .accessibilityIdentifier("addCourseMenu")
                 }
             }
             .appDestinations()
@@ -65,6 +79,12 @@ struct ListsView: View {
                 Task { await reload() }
             }) {
                 LogCourseFlow()
+            }
+            .sheet(isPresented: $isAddingWantToPlay, onDismiss: {
+                Task { await reload() }
+            }) {
+                // Land on the list the course just joined, so the save is visible.
+                AddToWantToPlaySheet { segment = .wantToPlay }
             }
             .task { await reload() }
             .onAppear {
@@ -106,33 +126,8 @@ struct ListsView: View {
         .environment(router)
     }
 
-    /// Flat editorial tabs: active tab underlined in fairway green over a
-    /// full-width sand hairline (replaces the stock segmented control).
     private var segmentTabs: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                ForEach(Segment.allCases) { seg in
-                    Button {
-                        withAnimation(.easeOut(duration: 0.15)) { segment = seg }
-                    } label: {
-                        VStack(spacing: 8) {
-                            Text(seg.rawValue)
-                                .font(.subheadline.weight(segment == seg ? .semibold : .regular))
-                                .foregroundStyle(segment == seg ? Color.darkPine : .secondary)
-                            Rectangle()
-                                .fill(segment == seg ? Color.fairwayGreen : .clear)
-                                .frame(height: 2)
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .frame(maxWidth: .infinity)
-                    .accessibilityAddTraits(segment == seg ? [.isButton, .isSelected] : .isButton)
-                }
-            }
-            .padding(.horizontal)
-            Rectangle().fill(Color.sand).frame(height: 1)
-        }
+        SegmentTabs(items: Segment.allCases, title: \.rawValue, selection: $segment)
     }
 
     @ViewBuilder
@@ -198,7 +193,7 @@ struct ListsView: View {
                 ContentUnavailableView(
                     "Nothing saved yet",
                     systemImage: "bookmark",
-                    description: Text("Bookmark courses you'd like to play from their detail page.")
+                    description: Text("Tap + to save a course you'd like to play, or swipe right on any course in Search.")
                 )
             }
         } else {

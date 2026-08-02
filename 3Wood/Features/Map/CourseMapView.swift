@@ -40,6 +40,7 @@ struct CourseMapView: View {
     @Environment(AppNavigation.self) private var nav
     @State private var viewModel = MapViewModel()
     @State private var searchModel = MapSearchModel()
+    @State private var quickSave = QuickSaveState()
     @State private var mode: ViewMode = .map
     @State private var typeFilter: CourseTypeFilter = .all
     @State private var citySearch = ""
@@ -117,10 +118,14 @@ struct CourseMapView: View {
             }
             .appDestinations()
             // First open: land on the user's area instead of the whole US.
+            // The flag is only set once a fix actually arrives — setting it
+            // before the await meant a task cancelled by the permission alert
+            // (exactly when it is most likely to be cancelled) left the map
+            // parked over the continental US with no retry.
             .task {
                 guard !hasCenteredOnUser else { return }
-                hasCenteredOnUser = true
                 guard let location = await LocationProvider.shared.currentLocation() else { return }
+                hasCenteredOnUser = true
                 let region = MKCoordinateRegion(
                     center: location.coordinate,
                     span: MKCoordinateSpan(latitudeDelta: 0.35, longitudeDelta: 0.35)
@@ -141,17 +146,25 @@ struct CourseMapView: View {
                 ForEach(filteredCourses) { course in
                     Annotation(course.name, coordinate: course.coordinate) {
                         NavigationLink(value: Destination.course(course)) {
-                            // Score capsules only for rated courses; unrated
-                            // ones get a quiet dot so dense metros stay legible
-                            // and the rated badges pop.
-                            if course.avgScore != nil {
-                                ScoreBadge(score: course.avgScore, compact: true)
-                            } else {
-                                Circle()
-                                    .fill(Color.darkPine)
-                                    .overlay(Circle().strokeBorder(Color.cream, lineWidth: 1.5))
-                                    .frame(width: 12, height: 12)
+                            Group {
+                                // Score capsules only for rated courses; unrated
+                                // ones get a quiet dot so dense metros stay legible
+                                // and the rated badges pop.
+                                if course.avgScore != nil {
+                                    ScoreBadge(score: course.avgScore, compact: true)
+                                } else {
+                                    Circle()
+                                        .fill(Color.darkPine)
+                                        .overlay(Circle().strokeBorder(Color.cream, lineWidth: 1.5))
+                                        .frame(width: 12, height: 12)
+                                }
                             }
+                            // The marks stay small so dense metros read cleanly,
+                            // but a 12pt dot (and even the compact badge) is well
+                            // under the 44pt minimum — testers kept missing them.
+                            // Pad the hit area out without growing the artwork.
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
                         }
                         .accessibilityLabel(course.name)
                     }
@@ -226,13 +239,15 @@ struct CourseMapView: View {
                     }
                     ForEach(filteredCourses.sorted { ($0.avgScore ?? -1) > ($1.avgScore ?? -1) }) { course in
                         NavigationLink(value: Destination.course(course)) {
-                            CourseRow(course: course)
+                            CourseRow(course: course, isSaved: quickSave.saved.contains(course.id))
                         }
                         .listRowBackground(Color.clear)
                         .listRowSeparatorTint(Color.sand)
+                        .wantToPlaySwipe(course, state: quickSave)
                     }
                 }
                 .listStyle(.plain)
+                .quickSaveAlert(quickSave)
                 .creamScreen()
             }
         }

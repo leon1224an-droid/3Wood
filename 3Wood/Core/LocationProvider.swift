@@ -13,8 +13,15 @@ final class LocationProvider: NSObject, CLLocationManagerDelegate {
     override private init() {
         super.init()
         manager.delegate = self
-        manager.desiredAccuracy = kCLLocationAccuracyKilometer
+        // Ten-metre accuracy: beta testers reported the map landing on their
+        // general area rather than where they actually are. One-shot requests
+        // only, so the battery cost of the tighter fix is bounded.
+        manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
     }
+
+    /// How old a cached fix may be before we ask for a fresh one. A fix from
+    /// this morning would drop the user somewhere they no longer are.
+    private static let maxCacheAge: TimeInterval = 60
 
     /// Requests permission if needed, then resolves one location (or nil on
     /// denial/failure — callers fall back to the country-wide default).
@@ -28,7 +35,10 @@ final class LocationProvider: NSObject, CLLocationManagerDelegate {
                 manager.requestWhenInUseAuthorization()
             }
         default:
-            if let cached = manager.location { return cached }
+            if let cached = manager.location,
+               -cached.timestamp.timeIntervalSinceNow < Self.maxCacheAge {
+                return cached
+            }
             return await withCheckedContinuation { continuation in
                 continuations.append(continuation)
                 manager.requestLocation()
