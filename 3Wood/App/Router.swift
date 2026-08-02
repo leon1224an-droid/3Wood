@@ -11,6 +11,9 @@ enum Destination: Hashable {
     case person(ProfileSummary)
     case people(userID: UUID, mode: PeopleListView.Mode)
     case leaderboard
+    case activity(FeedItem)
+    case activityID(Int)
+    case notifications
     case findFriends
     case contacts
     case about
@@ -24,6 +27,9 @@ enum Destination: Hashable {
         case .person(let person): "person-\(person.id)"
         case .people(let userID, let mode): "people-\(userID)-\(mode)"
         case .leaderboard: "leaderboard"
+        case .activity(let item): "activity-\(item.activityID)"
+        case .activityID(let id): "activity-\(id)"
+        case .notifications: "notifications"
         case .findFriends: "findFriends"
         case .contacts: "contacts"
         case .about: "about"
@@ -66,6 +72,9 @@ extension View {
             case .person(let person): OtherProfileView(person: person)
             case .people(let userID, let mode): PeopleListView(userID: userID, mode: mode)
             case .leaderboard: LeaderboardView()
+            case .activity(let item): ActivityDetailView(item: item)
+            case .activityID(let id): ActivityDetailByID(activityID: id)
+            case .notifications: NotificationsView()
             case .findFriends: FindFriendsView()
             case .contacts: ContactsMatchView()
             case .about: AboutView()

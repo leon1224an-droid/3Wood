@@ -155,3 +155,40 @@ from (values
    'Once in a lifetime. Faster greens than anything I have putted on.')
 ) as r(user_id, ext, body)
 join public.courses c on c.external_id = r.ext;
+
+-- Activities for the seeded rankings. Migrations run before this file, so the
+-- backfill in 00180 saw an empty table; and rankings deliberately have no
+-- trigger (insert_ranking manages activities explicitly, because a delete
+-- trigger would drop the activity — and its comments — on every re-rank).
+-- want_to_play rows do have triggers, so those activities already exist.
+insert into public.activities (actor_id, kind, course_id, created_at)
+select user_id, 'ranked', course_id, created_at
+from public.user_course_rankings
+on conflict do nothing;
+
+-- Reactions and comments on Ben's activities, so the feed has engagement to
+-- render and his notification inbox isn't empty. The notify triggers fire on
+-- these inserts, which is exactly how the alert feed gets its fixtures.
+insert into public.activity_reactions (activity_id, user_id, emoji)
+select a.id, u.uid, u.emoji
+from public.activities a
+join public.courses c on c.id = a.course_id
+join (values
+  ('22222222-2222-2222-2222-222222222222'::uuid, 'Pebble Beach Golf Links', '🔥'),
+  ('55555555-5555-5555-5555-555555555555'::uuid, 'Pebble Beach Golf Links', '🦅'),
+  ('44444444-4444-4444-4444-444444444444'::uuid, 'Pinehurst No. 2',         '⛳')
+) as u(uid, course_name, emoji) on c.name = u.course_name
+where a.actor_id = '11111111-1111-1111-1111-111111111111' and a.kind = 'ranked'
+on conflict do nothing;
+
+insert into public.activity_comments (activity_id, user_id, body)
+select a.id, u.uid, u.body
+from public.activities a
+join public.courses c on c.id = a.course_id
+join (values
+  ('44444444-4444-4444-4444-444444444444'::uuid, 'Pebble Beach Golf Links',
+   'Still jealous. How was 7 playing?'),
+  ('22222222-2222-2222-2222-222222222222'::uuid, 'Pebble Beach Golf Links',
+   'Told you it was worth the green fee.')
+) as u(uid, course_name, body) on c.name = u.course_name
+where a.actor_id = '11111111-1111-1111-1111-111111111111' and a.kind = 'ranked';

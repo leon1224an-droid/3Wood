@@ -23,6 +23,13 @@ final class NavigationUITests: XCTestCase {
 
     private func tap(_ element: XCUIElement, _ label: String) {
         XCTAssertTrue(element.waitForExistence(timeout: timeout), "Missing element: \(label)")
+        // Existing isn't the same as hittable: a freshly laid-out List row can
+        // report a frame a moment before it accepts touches, which made the
+        // feed's reaction button flaky. Wait for it rather than for luck.
+        let deadline = Date().addingTimeInterval(5)
+        while !element.isHittable, Date() < deadline {
+            usleep(100_000)
+        }
         element.tap()
     }
 
@@ -305,6 +312,46 @@ final class NavigationUITests: XCTestCase {
         XCTAssertTrue(app.cells.element(boundBy: 0).waitForExistence(timeout: timeout),
                       "Leaderboard is empty")
         snapshot("19-Leaderboard")
+    }
+
+    /// Reactions, the comment thread, and the alert feed.
+    func testReactionsCommentsAndAlerts() {
+        ensureSignedInAsDemo()
+        switchToTab("Feed")
+        XCTAssertTrue(app.cells.element(boundBy: 0).waitForExistence(timeout: timeout),
+                      "Feed has no activity")
+
+        // React from the feed without leaving it.
+        snapshot("30-Feed-BeforeReact")
+        tap(app.buttons["React"].firstMatch, "React button")
+        tap(app.buttons.matching(NSPredicate(format: "label CONTAINS 'On fire'")).firstMatch,
+            "🔥 reaction")
+        snapshot("30-Feed-Reactions")
+
+        // Comments live on the activity screen.
+        tap(app.buttons.matching(NSPredicate(format: "label CONTAINS 'comment' OR label == 'Comment'"))
+                .firstMatch, "Comment button")
+        XCTAssertTrue(app.navigationBars["Activity"].waitForExistence(timeout: timeout),
+                      "Activity detail did not open")
+        let composer = app.textFields["Add a comment"]
+        tap(composer, "Comment composer")
+        composer.typeText("Great round")
+        tap(app.buttons["Send comment"], "Send comment")
+        XCTAssertTrue(app.staticTexts["Great round"].waitForExistence(timeout: timeout),
+                      "Posted comment did not appear in the thread")
+        snapshot("31-Activity-Comments")
+        goBack()
+
+        // Alert feed: Ben's fixtures give him followers, reactions and comments.
+        tap(app.buttons["alertsButton"], "Alerts button")
+        if !app.navigationBars["Alerts"].waitForExistence(timeout: 6) {
+            app.buttons["alertsButton"].tap()
+        }
+        XCTAssertTrue(app.navigationBars["Alerts"].waitForExistence(timeout: timeout),
+                      "Alerts did not open")
+        XCTAssertTrue(app.cells.element(boundBy: 0).waitForExistence(timeout: timeout),
+                      "Alert feed is empty")
+        snapshot("32-Alerts")
     }
 
     /// Verifies course reviews display and the review editor opens.
