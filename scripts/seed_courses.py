@@ -105,10 +105,53 @@ def main():
     with psycopg.connect(db_url) as conn:
         with conn.cursor() as cur:
             cur.executemany(UPSERT, rows)
-            # Drop the dev fixture courses the real dataset supersedes — but
-            # never one that dev fixture data points at. courses cascades on
-            # delete, so removing a referenced row silently takes the seeded
-            # rankings, bookmarks and reviews with it.
+            # Retire the dev fixture courses the real dataset supersedes.
+            #
+            # This can't be a plain delete: courses cascades on delete, so
+            # dropping a fixture course that seeded rankings/bookmarks/reviews
+            # point at silently destroys them. Instead move those references
+            # onto the real course of the same name first, then delete only
+            # the fixture rows nothing depends on. Leaving them in place
+            # instead would show every fixture course twice in search.
+            cur.execute(
+                """
+                create temp table remap on commit drop as
+                select distinct on (s.id) s.id as seed_id, r.id as real_id
+                  from public.courses s
+                  join public.courses r
+                    on lower(r.name) = lower(s.name)
+                   and r.external_id not like 'seed:%'
+                 where s.external_id like 'seed:%'
+                 order by s.id, r.id
+                """
+            )
+            # The not-exists guards skip rows that would collide with data the
+            # user already has on the real course; those keep their fixture
+            # course, which then survives the delete below.
+            cur.execute(
+                """
+                update public.user_course_rankings k
+                   set course_id = m.real_id
+                  from remap m
+                 where k.course_id = m.seed_id
+                   and not exists (select 1 from public.user_course_rankings k2
+                                    where k2.user_id = k.user_id
+                                      and k2.course_id = m.real_id)
+                """
+            )
+            cur.execute(
+                """
+                update public.want_to_play w
+                   set course_id = m.real_id
+                  from remap m
+                 where w.course_id = m.seed_id
+                   and not exists (select 1 from public.want_to_play w2
+                                    where w2.user_id = w.user_id
+                                      and w2.course_id = m.real_id)
+                """
+            )
+            cur.execute("update public.reviews v set course_id = m.real_id "
+                        "from remap m where v.course_id = m.seed_id")
             cur.execute(
                 """
                 delete from public.courses c
