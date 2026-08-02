@@ -58,7 +58,12 @@ struct CoursePhotosSection: View {
             Task { await upload(pickerItem) }
         }
         .fullScreenCover(item: $viewing) { photo in
-            PhotoViewer(photo: photo)
+            PhotoViewer(
+                photos: photos,
+                current: photo,
+                onDelete: { await delete($0) },
+                onReport: { reported = $0 }
+            )
         }
         .confirmationDialog(
             "Report @\(reported?.username ?? "")'s photo?",
@@ -173,42 +178,97 @@ struct CoursePhotosSection: View {
     }
 }
 
-/// Full-screen photo with its attribution.
+/// Full-screen photo browser. Swipes between every photo on the course, and
+/// carries delete/report as visible buttons — they previously existed only in
+/// a long-press context menu on the thumbnail, which is why they read as
+/// missing.
 private struct PhotoViewer: View {
-    let photo: CoursePhoto
+    let photos: [CoursePhoto]
+    @State var current: CoursePhoto
+    let onDelete: (CoursePhoto) async -> Void
+    let onReport: (CoursePhoto) -> Void
+
     @Environment(\.dismiss) private var dismiss
+    @State private var confirmingDelete = false
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            AsyncImage(url: PhotoRepo.publicURL(for: photo.storagePath)) { phase in
-                if let image = phase.image {
-                    image.resizable().scaledToFit()
-                } else if phase.error != nil {
-                    Label("Couldn't load this photo", systemImage: "photo")
-                        .foregroundStyle(.white)
-                } else {
-                    ProgressView().tint(.white)
+            TabView(selection: $current) {
+                ForEach(photos) { photo in
+                    AsyncImage(url: PhotoRepo.publicURL(for: photo.storagePath)) { phase in
+                        if let image = phase.image {
+                            image.resizable().scaledToFit()
+                        } else if phase.error != nil {
+                            Label("Couldn't load this photo", systemImage: "photo")
+                                .foregroundStyle(.white)
+                        } else {
+                            ProgressView().tint(.white)
+                        }
+                    }
+                    .tag(photo)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: photos.count > 1 ? .automatic : .never))
+            .ignoresSafeArea()
+        }
+        .overlay(alignment: .top) { controls }
+        .overlay(alignment: .bottom) {
+            Text("Photo by @" + current.username)
+                .font(.footnote)
+                .foregroundStyle(.white.opacity(0.85))
+                .padding(.bottom, 30)
+        }
+        .confirmationDialog("Delete this photo?", isPresented: $confirmingDelete,
+                            titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
+                let doomed = current
+                Task {
+                    await onDelete(doomed)
+                    dismiss()
                 }
             }
         }
-        .overlay(alignment: .topLeading) {
+    }
+
+    private var controls: some View {
+        HStack {
             Button {
                 dismiss()
             } label: {
                 Image(systemName: "xmark.circle.fill")
                     .font(.title2)
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.white)
-                    .padding()
             }
             .accessibilityLabel("Close")
+
+            Spacer()
+
+            if photos.count > 1, let index = photos.firstIndex(of: current) {
+                Text("\(index + 1) of \(photos.count)")
+                    .font(.footnote)
+                    .foregroundStyle(.white.opacity(0.85))
+            }
+
+            Spacer()
+
+            if current.isMine {
+                Button(role: .destructive) {
+                    confirmingDelete = true
+                } label: {
+                    Image(systemName: "trash").font(.title3)
+                }
+                .accessibilityLabel("Delete photo")
+            } else {
+                Button {
+                    onReport(current)
+                } label: {
+                    Image(systemName: "flag").font(.title3)
+                }
+                .accessibilityLabel("Report photo")
+            }
         }
-        .overlay(alignment: .bottom) {
-            Text("Photo by @\(photo.username)")
-                .font(.footnote)
-                .foregroundStyle(.white.opacity(0.85))
-                .padding(.bottom, 30)
-        }
+        .foregroundStyle(.white)
+        .padding()
     }
 }

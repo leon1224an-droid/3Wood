@@ -321,12 +321,36 @@ final class NavigationUITests: XCTestCase {
         XCTAssertTrue(app.cells.element(boundBy: 0).waitForExistence(timeout: timeout),
                       "Feed has no activity")
 
-        // React from the feed without leaving it.
+        // React from the feed without leaving it. Slack-style: the add button
+        // opens the palette, and each emoji becomes its own counted chip.
         snapshot("30-Feed-BeforeReact")
-        tap(app.buttons["React"].firstMatch, "React button")
+        tap(app.buttons["Add a reaction"].firstMatch, "Add-reaction button")
         tap(app.buttons.matching(NSPredicate(format: "label CONTAINS 'On fire'")).firstMatch,
             "🔥 reaction")
+        let fireChip = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH 'On fire'")
+        ).firstMatch
+        XCTAssertTrue(fireChip.waitForExistence(timeout: timeout),
+                      "Reacting did not produce a counted chip")
         snapshot("30-Feed-Reactions")
+
+        // Holding two reactions at once is the whole point of the Slack model.
+        tap(app.buttons["Add a reaction"].firstMatch, "Add-reaction button again")
+        tap(app.buttons.matching(NSPredicate(format: "label CONTAINS 'Well played'")).firstMatch,
+            "👏 reaction")
+        XCTAssertTrue(
+            app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Well played'"))
+                .firstMatch.waitForExistence(timeout: timeout),
+            "Second reaction replaced the first instead of stacking")
+        XCTAssertTrue(fireChip.exists, "First reaction disappeared when a second was added")
+        snapshot("34-Feed-TwoReactions")
+
+        // Reactions toggle, so leaving them behind would make the next run of
+        // this test remove them instead of adding — it would then fail looking
+        // for a chip it just deleted. Put the row back as we found it.
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Well played'"))
+            .firstMatch.tap()
+        fireChip.tap()
 
         // Comments live on the activity screen.
         tap(app.buttons.matching(NSPredicate(format: "label CONTAINS 'comment' OR label == 'Comment'"))

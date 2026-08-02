@@ -21,8 +21,10 @@ struct FeedItem: Codable, Identifiable, Hashable, Sendable {
     // round trip; the server is still the authority on the next reload.
     var reactionCount: Int
     var commentCount: Int
-    var myReaction: String?
-    var topEmojis: [String]?
+    /// One chip per emoji, busiest first, each knowing whether you're in it.
+    var reactions: [ReactionSummary]
+    /// Playing partners named on this round.
+    var taggedUsernames: [String]?
 
     var id: Int { activityID }
 
@@ -41,9 +43,40 @@ struct FeedItem: Codable, Identifiable, Hashable, Sendable {
         case createdAt = "created_at"
         case reactionCount = "reaction_count"
         case commentCount = "comment_count"
-        case myReaction = "my_reaction"
-        case topEmojis = "top_emojis"
+        case reactions
+        case taggedUsernames = "tagged_usernames"
     }
+
+    /// Applies a reaction tap locally so the chip row moves before the network
+    /// answers. Mirrors what toggle_reaction does server-side.
+    mutating func applyToggle(_ emoji: String) {
+        if let i = reactions.firstIndex(where: { $0.emoji == emoji }) {
+            let chip = reactions[i]
+            if chip.mine {
+                reactionCount = max(0, reactionCount - 1)
+                if chip.count <= 1 {
+                    reactions.remove(at: i)
+                } else {
+                    reactions[i] = ReactionSummary(emoji: emoji, count: chip.count - 1, mine: false)
+                }
+            } else {
+                reactionCount += 1
+                reactions[i] = ReactionSummary(emoji: emoji, count: chip.count + 1, mine: true)
+            }
+        } else {
+            reactions.append(ReactionSummary(emoji: emoji, count: 1, mine: true))
+            reactionCount += 1
+        }
+    }
+}
+
+/// One emoji chip: how many people used it, and whether you're one of them.
+struct ReactionSummary: Codable, Hashable, Sendable, Identifiable {
+    let emoji: String
+    let count: Int
+    let mine: Bool
+
+    var id: String { emoji }
 }
 
 /// One leaderboard row, ranked by courses logged.

@@ -112,25 +112,17 @@ struct FeedView: View {
         isLoading = false
     }
 
-    /// Optimistic: the emoji lands before the round trip, and rolls back if
-    /// the write fails.
+    /// Optimistic: the chip moves before the round trip, and rolls back if the
+    /// write fails.
     private func react(_ emoji: String, on item: Binding<FeedItem>) async {
-        let previous = item.wrappedValue.myReaction
-        let previousCount = item.wrappedValue.reactionCount
-        if previous == emoji {
-            item.wrappedValue.myReaction = nil
-            item.wrappedValue.reactionCount = max(0, previousCount - 1)
-        } else {
-            if previous == nil { item.wrappedValue.reactionCount = previousCount + 1 }
-            item.wrappedValue.myReaction = emoji
-        }
+        let snapshot = item.wrappedValue
+        item.wrappedValue.applyToggle(emoji)
         do {
             try await ActivityRepo.toggleReaction(
-                activityID: item.wrappedValue.activityID, emoji: emoji
+                activityID: snapshot.activityID, emoji: emoji
             )
         } catch {
-            item.wrappedValue.myReaction = previous
-            item.wrappedValue.reactionCount = previousCount
+            item.wrappedValue = snapshot
             actionError = "Couldn't save that reaction. \(error.localizedDescription)"
         }
     }
@@ -168,6 +160,11 @@ private struct FeedRow: View {
                     Text("\(item.locationText) · \(item.createdAt.formatted(.relative(presentation: .named)))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    if let partners = item.taggedUsernames, !partners.isEmpty {
+                        Text("with \(partners.map { "@\($0)" }.formatted(.list(type: .and)))")
+                            .font(.caption)
+                            .foregroundStyle(Color.fairwayGreen)
+                    }
                 }
                 Spacer()
                 if item.isRanked {
@@ -199,41 +196,10 @@ private struct FeedRow: View {
     /// React without leaving the feed; comments are a push, since a thread
     /// needs the room.
     private var engagementBar: some View {
-        HStack(spacing: 14) {
-            Menu {
-                ForEach(Reaction.all, id: \.self) { emoji in
-                    Button {
-                        Task { await onReact(emoji) }
-                    } label: {
-                        Text("\(emoji)  \(Reaction.label(for: emoji))")
-                    }
-                }
-            } label: {
-                HStack(spacing: 4) {
-                    if let mine = item.myReaction {
-                        Text(mine)
-                    } else {
-                        Image(systemName: "face.smiling")
-                    }
-                    if item.reactionCount > 0 {
-                        Text("\(item.reactionCount)").monospacedDigit()
-                    }
-                }
-                .font(.subheadline)
-                .foregroundStyle(item.myReaction == nil ? Color.secondary : Color.fairwayGreen)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(
-                    Capsule().fill(item.myReaction == nil
-                                   ? Color.clear
-                                   : Color.fairwayGreen.opacity(0.12))
-                )
-                .overlay(Capsule().strokeBorder(Color.sand, lineWidth: 1))
+        HStack(spacing: 10) {
+            ReactionBar(reactions: item.reactions, compact: true) { emoji in
+                await onReact(emoji)
             }
-            .accessibilityLabel(item.myReaction == nil
-                                ? "React"
-                                : "Your reaction: \(Reaction.label(for: item.myReaction ?? ""))")
-
             Button(action: onOpenActivity) {
                 HStack(spacing: 4) {
                     Image(systemName: "bubble.left")
@@ -243,21 +209,14 @@ private struct FeedRow: View {
                 }
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
                 .overlay(Capsule().strokeBorder(Color.sand, lineWidth: 1))
             }
             .buttonStyle(.plain)
             .accessibilityLabel(item.commentCount > 0
                                 ? "^[\(item.commentCount) comment](inflect: true)"
                                 : "Comment")
-
-            // Who else reacted, at a glance.
-            if let emojis = item.topEmojis, !emojis.isEmpty {
-                Text(emojis.joined())
-                    .font(.subheadline)
-                    .accessibilityHidden(true)
-            }
             Spacer()
         }
         .padding(.leading, 36)

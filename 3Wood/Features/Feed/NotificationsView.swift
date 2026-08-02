@@ -57,6 +57,12 @@ struct NotificationsView: View {
                         .foregroundStyle(Color.fairwayGreen)
                 case "reaction":
                     Text(item.emoji ?? "👏")
+                case "tag":
+                    Image(systemName: "person.2")
+                        .foregroundStyle(Color.fairwayGreen)
+                case "mention":
+                    Image(systemName: "at")
+                        .foregroundStyle(Color.fairwayGreen)
                 default:
                     Image(systemName: "bubble.left")
                         .foregroundStyle(Color.fairwayGreen)
@@ -90,6 +96,8 @@ struct NotificationsView: View {
         let rest: String = switch item.kind {
         case "follow": "started following you"
         case "reaction": "reacted to your round at \(course)"
+        case "tag": "tagged you at \(course)"
+        case "mention": "mentioned you in a comment"
         default: "commented on your round at \(course)"
         }
         return actor + AttributedString(rest)

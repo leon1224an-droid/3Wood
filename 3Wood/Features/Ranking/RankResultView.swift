@@ -10,6 +10,9 @@ struct RankResultView: View {
 
     @State private var isWritingReview = false
     @State private var hasReviewed = false
+    @State private var isTagging = false
+    @State private var activityID: Int?
+    @State private var tagged: [String] = []
 
     var body: some View {
         VStack(spacing: 24) {
@@ -34,6 +37,23 @@ struct RankResultView: View {
                 .font(.subheadline.smallCaps())
                 .foregroundStyle(Color.darkPine)
 
+            // Who you played with, while the round is still fresh in mind.
+            if tagged.isEmpty {
+                Button("Add playing partners") { isTagging = true }
+                    .font(.subheadline.weight(.medium))
+                    .tint(Color.fairwayGreen)
+                    .disabled(activityID == nil)
+            } else {
+                Button {
+                    isTagging = true
+                } label: {
+                    Text("with \(tagged.map { "@\($0)" }.formatted(.list(type: .and)))")
+                        .font(.subheadline)
+                        .multilineTextAlignment(.center)
+                }
+                .tint(Color.fairwayGreen)
+            }
+
             Spacer()
 
             // Strike while the round is fresh — reviews mostly happen here.
@@ -57,6 +77,16 @@ struct RankResultView: View {
             WriteReviewSheet(courseID: courseID, existing: nil) {
                 hasReviewed = true
             }
+        }
+        .sheet(isPresented: $isTagging) {
+            if let activityID {
+                TagFriendsSheet(activityID: activityID, alreadyTagged: tagged) { tagged = $0 }
+            }
+        }
+        // insert_ranking creates the activity; look it up so tagging has
+        // something to attach to.
+        .task {
+            activityID = (try? await ActivityRepo.myActivity(courseID: courseID))?.activityID
         }
     }
 

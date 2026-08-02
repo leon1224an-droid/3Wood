@@ -55,3 +55,25 @@ extension ActivityRepo {
         return rows.first
     }
 }
+
+extension ActivityRepo {
+    /// Replaces the playing partners named on your own activity. The server
+    /// ignores anyone you don't follow.
+    static func setTags(activityID: Int, userIDs: [UUID]) async throws {
+        struct Params: Encodable {
+            let p_activity_id: Int
+            let p_user_ids: [UUID]
+        }
+        try await supa.rpc("set_activity_tags",
+                           params: Params(p_activity_id: activityID, p_user_ids: userIDs))
+            .execute()
+    }
+
+    /// The activity just created for a course — used by the ranking flow to
+    /// attach playing partners once the ranking is saved.
+    static func myActivity(courseID: Int) async throws -> FeedItem? {
+        let rows: [FeedItem] = try await supa.rpc("activity_feed").execute().value
+        guard let me = supa.auth.currentSession?.user.id else { return nil }
+        return rows.first { $0.courseID == courseID && $0.actorID == me && $0.isRanked }
+    }
+}

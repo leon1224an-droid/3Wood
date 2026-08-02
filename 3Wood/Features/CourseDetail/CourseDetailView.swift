@@ -134,18 +134,39 @@ struct CourseDetailView: View {
 
                 reviewsSection
 
-                // Map snippet
-                Map(initialPosition: .region(MKCoordinateRegion(
-                    center: course.coordinate,
-                    span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-                ))) {
-                    Marker(course.name, coordinate: course.coordinate)
-                        .tint(Color.fairwayGreen)
+                // Map snippet. Pan and zoom are enabled so you can look at
+                // what's around the course; rotate and pitch are not, since
+                // they're easy to trigger by accident and hard to undo.
+                //
+                // The tradeoff is real: a drag that starts on the map moves the
+                // map, not the page. The map is inset and the page has plenty
+                // of scrollable area beside it, and "Open in Maps" is there for
+                // anyone who wants the real thing.
+                VStack(alignment: .leading, spacing: 8) {
+                    Map(
+                        initialPosition: .region(MKCoordinateRegion(
+                            center: course.coordinate,
+                            span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+                        )),
+                        interactionModes: [.pan, .zoom]
+                    ) {
+                        Marker(course.name, coordinate: course.coordinate)
+                            .tint(Color.fairwayGreen)
+                    }
+                    .frame(height: 180)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .accessibilityLabel("Map showing \(course.name)")
+
+                    Button {
+                        let item = MKMapItem(placemark: MKPlacemark(coordinate: course.coordinate))
+                        item.name = course.name
+                        item.openInMaps()
+                    } label: {
+                        Label("Open in Maps", systemImage: "arrow.up.right.square")
+                            .font(.subheadline)
+                    }
+                    .tint(Color.fairwayGreen)
                 }
-                .frame(height: 180)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
             }
             .padding()
         }

@@ -5,8 +5,7 @@ struct ActivityDetailView: View {
     let item: FeedItem
 
     @Environment(Router.self) private var router
-    @State private var reaction: String?
-    @State private var reactionCount: Int
+    @State private var live: FeedItem
     @State private var comments: [ActivityComment] = []
     @State private var draft = ""
     @State private var isLoading = true
@@ -18,8 +17,7 @@ struct ActivityDetailView: View {
 
     init(item: FeedItem) {
         self.item = item
-        _reaction = State(initialValue: item.myReaction)
-        _reactionCount = State(initialValue: item.reactionCount)
+        _live = State(initialValue: item)
     }
 
     var body: some View {
@@ -92,6 +90,11 @@ struct ActivityDetailView: View {
                     Text("\(item.locationText) · \(item.createdAt.formatted(.relative(presentation: .named)))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    if let partners = live.taggedUsernames, !partners.isEmpty {
+                        Text("with \(partners.map { "@\($0)" }.formatted(.list(type: .and)))")
+                            .font(.caption)
+                            .foregroundStyle(Color.fairwayGreen)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
@@ -103,40 +106,10 @@ struct ActivityDetailView: View {
         .card()
     }
 
-    /// The full palette, always visible — picking a reaction shouldn't need a
-    /// long-press to discover.
+    /// Slack-style chips: every emoji anyone used, plus an add button.
     private var reactionBar: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                ForEach(Reaction.all, id: \.self) { emoji in
-                    Button {
-                        Task { await toggle(emoji) }
-                    } label: {
-                        Text(emoji)
-                            .font(.title3)
-                            .frame(width: 44, height: 44)
-                            .background(
-                                Circle().fill(reaction == emoji
-                                              ? Color.fairwayGreen.opacity(0.18)
-                                              : Color.clear)
-                            )
-                            .overlay(
-                                Circle().strokeBorder(
-                                    reaction == emoji ? Color.fairwayGreen : Color.sand,
-                                    lineWidth: 1
-                                )
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(Reaction.label(for: emoji))
-                    .accessibilityAddTraits(reaction == emoji ? [.isButton, .isSelected] : .isButton)
-                }
-            }
-            if reactionCount > 0 {
-                Text("^[\(reactionCount) reaction](inflect: true)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+        ReactionBar(reactions: live.reactions) { emoji in
+            await toggle(emoji)
         }
     }
 
@@ -237,22 +210,14 @@ struct ActivityDetailView: View {
     }
 
     private func toggle(_ emoji: String) async {
-        // Move first; the row is tiny and waiting on the network to light up
-        // makes the whole bar feel broken.
-        let previous = reaction
-        let previousCount = reactionCount
-        if reaction == emoji {
-            reaction = nil
-            reactionCount = max(0, reactionCount - 1)
-        } else {
-            if reaction == nil { reactionCount += 1 }
-            reaction = emoji
-        }
+        // Move first; waiting on the network to light a chip makes the whole
+        // bar feel broken.
+        let snapshot = live
+        live.applyToggle(emoji)
         do {
             try await ActivityRepo.toggleReaction(activityID: item.activityID, emoji: emoji)
         } catch {
-            reaction = previous
-            reactionCount = previousCount
+            live = snapshot
             actionError = "Couldn't save that reaction. \(error.localizedDescription)"
         }
     }
