@@ -130,6 +130,8 @@ struct CourseDetailView: View {
                     .frame(maxWidth: .infinity)
                 }
 
+                CoursePhotosSection(courseID: course.id)
+
                 reviewsSection
 
                 // Map snippet

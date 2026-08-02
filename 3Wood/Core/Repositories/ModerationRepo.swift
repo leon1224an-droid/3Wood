@@ -2,21 +2,23 @@ import Foundation
 import Supabase
 
 enum ModerationRepo {
-    /// Report a user, a review (author + course identifies it), or a comment.
+    /// Report a user, a review (author + course identifies it), a comment,
+    /// or a photo.
     static func report(
         userID: UUID? = nil, reviewCourseID: Int? = nil,
-        commentID: Int? = nil, reason: String
+        commentID: Int? = nil, photoID: Int? = nil, reason: String
     ) async throws {
         struct Row: Encodable {
             let reported_user: UUID?
             let review_course_id: Int?
             let comment_id: Int?
+            let photo_id: Int?
             let reason: String
         }
         try await supa.from("reports")
             .insert(Row(
                 reported_user: userID, review_course_id: reviewCourseID,
-                comment_id: commentID, reason: reason
+                comment_id: commentID, photo_id: photoID, reason: reason
             ))
             .execute()
     }

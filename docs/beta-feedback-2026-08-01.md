@@ -79,7 +79,24 @@ and the weekly board showing 1 where all-time shows 3.
 `SegmentTabs` was extracted from `ListsView` into `Core/DesignSystem` so the
 leaderboard's switcher is literally the same control rather than a lookalike.
 
-## Tranche 3 — the social layer (the big one)
+## Tranche 3 — the social layer — DONE (migration 00180)
+
+`activities` is the table the triage predicted: trigger-populated for want-to-play,
+explicitly managed by the ranking RPCs. It could not be trigger-driven on both
+sides — `insert_ranking` re-logs by delete-then-insert, so a delete trigger would
+have cascaded away every comment on a course each time someone updated a ranking.
+`remove_ranking` gained `p_drop_activity` for that, and the old one-argument version
+had to be **dropped** first: adding a parameter is a new signature, so
+create-or-replace leaves an ambiguous overload behind and the app's one-arg call
+starts failing.
+
+Reactions are one per person (swapping, not stacking) over a golf-native palette.
+Comments carry the review report path (`reports.comment_id`), blocked users are
+filtered in every new read RPC, and notifications are written by triggers that skip
+self-actions and anyone the recipient blocked — filtering at write time so unread
+counts can't be inflated by someone you've blocked.
+
+## Tranche 3 — original plan (kept for the reasoning)
 
 | # | Feedback | Notes |
 |---|---|---|
@@ -90,10 +107,10 @@ leaderboard's switcher is literally the same control rather than a lookalike.
 
 | # | Feedback | Notes |
 |---|---|---|
-| 12 | "Search and map should just be combined" | Genuinely feasible — `CourseMapView` already has list mode, its own `.searchable`, and `MapSearchModel` with course + place suggestions. But it means deleting a tab, choosing which router survives (`nav.searchRouter` vs `nav.mapRouter`), and updating `3WoodUITests/NavigationUITests.swift`. Worth doing; do it alone, not mixed with feature work. Frees a tab slot the alert feed will want. |
+| 12 | ✅ DONE — "Search and map should just be combined" | Genuinely feasible — `CourseMapView` already has list mode, its own `.searchable`, and `MapSearchModel` with course + place suggestions. But it means deleting a tab, choosing which router survives (`nav.searchRouter` vs `nav.mapRouter`), and updating `3WoodUITests/NavigationUITests.swift`. Worth doing; do it alone, not mixed with feature work. Frees a tab slot the alert feed will want. |
 | 11 | "Interact with map inside a course page" | `CourseDetailView` sets `.allowsHitTesting(false)` **deliberately** — the snippet is inside a `ScrollView`, and an interactive map eats vertical drags so the page stops scrolling. This is not a one-line deletion. Fix shape: keep it inert, add a tap that opens a full-screen map sheet (or Apple Maps for directions). |
 | 7 | "Allow while using → should go to exact current location" | Three candidate causes, all real: (a) `LocationProvider` sets `desiredAccuracy = kCLLocationAccuracyKilometer` — coarse by construction; (b) `if let cached = manager.location` returns a stale fix; (c) in `CourseMapView.task`, `hasCenteredOnUser = true` is set **before** the `await` — the permission alert is exactly when that task gets cancelled, after which it never retries and never centers. (c) is the likeliest and is a 2-line fix. Note `MapUserLocationButton()` already exists in `.mapControls`, so the tester may be complaining about that button rather than first-launch centering — worth confirming. |
-| 5 | Add photos to golf courses | **Most expensive item, and it's not close.** Supabase Storage bucket + RLS + upload/compression + a moderation path. `ModerationRepo` and the review-report flow exist because UGC already required them; photos raise that bar (image moderation, EXIF stripping). Plan it as its own release. |
+| 5 | ✅ DONE (migration 00190) — Add photos to golf courses | **Most expensive item, and it's not close.** Supabase Storage bucket + RLS + upload/compression + a moderation path. `ModerationRepo` and the review-report flow exist because UGC already required them; photos raise that bar (image moderation, EXIF stripping). Plan it as its own release. |
 
 ---
 
@@ -155,6 +172,13 @@ Fixed so it can't happen the same way again:
 `DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres python3
 scripts/seed_courses.py` (hits OpenGolfAPI for 51 states, few minutes). Not run
 automatically — it's a long external fetch.
+
+## Migrations awaiting `supabase db push`
+
+In order: **00170** (leaderboard block-filter regression — a real moderation bug that
+shipped), **00180** (activities/reactions/comments/notifications), **00190** (photos).
+All three are applied and tested locally. The push is user-run: production database
+writes are gated.
 
 ## Recommended order
 

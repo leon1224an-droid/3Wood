@@ -102,6 +102,47 @@ struct LiveBackendTests {
         return try JSONDecoder().decode(Claims.self, from: data).sub
     }
 
+    /// Storage policies key on the first path segment being the uploader's
+    /// user id. That rule is the only thing stopping one user writing into
+    /// another's folder, and it lives in SQL where the compiler can't check it.
+    @Test func photoUploadIsConfinedToTheUsersOwnFolder() async throws {
+        let token = try await accessToken()
+        let userID = try Self.subject(ofJWT: token)
+
+        // Smallest valid JPEG payload; the point is the path, not the pixels.
+        let jpeg = Data(base64Encoded: "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==")!
+
+        func put(path: String) async throws -> Int {
+            var request = URLRequest(url: Config.supabaseURL
+                .appendingPathComponent("storage/v1/object/course-photos/\(path)"))
+            request.httpMethod = "POST"
+            request.setValue(Config.supabaseAnonKey, forHTTPHeaderField: "apikey")
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
+            request.httpBody = jpeg
+            let (_, response) = try await URLSession.shared.upload(for: request, from: jpeg)
+            return (response as? HTTPURLResponse)?.statusCode ?? 0
+        }
+
+        // Someone else's folder must be refused.
+        let foreign = try await put(path: "00000000-0000-0000-0000-0000000000ff/1/probe.jpg")
+        #expect(foreign == 400 || foreign == 403,
+                "upload into another user's folder was not rejected (got \(foreign))")
+
+        // The caller's own folder is allowed.
+        let ownPath = "\(userID.lowercased())/1/\(UUID().uuidString.lowercased()).jpg"
+        let own = try await put(path: ownPath)
+        #expect(own == 200, "upload into the caller's own folder failed (got \(own))")
+
+        // Clean up so repeated runs don't accumulate objects.
+        var delete = URLRequest(url: Config.supabaseURL
+            .appendingPathComponent("storage/v1/object/course-photos/\(ownPath)"))
+        delete.httpMethod = "DELETE"
+        delete.setValue(Config.supabaseAnonKey, forHTTPHeaderField: "apikey")
+        delete.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        _ = try? await URLSession.shared.data(for: delete)
+    }
+
     @Test func courseModelDecodesLiveSearchResults() async throws {
         let token = try await accessToken()
         let data = try await callRPC("search_courses", body: ["p_query": "pebble beach"], token: token)
