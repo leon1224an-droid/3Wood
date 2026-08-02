@@ -23,12 +23,11 @@ struct MainTabView: View {
                 .tabItem { Label("Feed", systemImage: "house") }
                 .tag(AppNavigation.Tab.feed)
 
-            SearchView()
-                .tabItem { Label("Search", systemImage: "magnifyingglass") }
-                .tag(AppNavigation.Tab.search)
-
+            // Search and Map were separate tabs; testers pointed out they do
+            // the same job, so Explore is both — typing searches courses,
+            // otherwise you browse the map or its list.
             CourseMapView()
-                .tabItem { Label("Map", systemImage: "map") }
+                .tabItem { Label("Explore", systemImage: "magnifyingglass") }
                 .tag(AppNavigation.Tab.map)
 
             ListsView()

@@ -6,7 +6,7 @@ import SwiftUI
 @MainActor
 final class AppNavigation {
     enum Tab: Hashable {
-        case feed, search, map, lists, profile
+        case feed, map, lists, profile
     }
 
     var selectedTab: Tab = .feed
@@ -15,7 +15,6 @@ final class AppNavigation {
     /// One navigation path per tab, so deep chains survive tab switches and
     /// re-tapping the active tab can pop its stack to the root.
     let feedRouter = Router()
-    let searchRouter = Router()
     let mapRouter = Router()
     let listsRouter = Router()
     let profileRouter = Router()
@@ -23,7 +22,6 @@ final class AppNavigation {
     func router(for tab: Tab) -> Router {
         switch tab {
         case .feed: feedRouter
-        case .search: searchRouter
         case .map: mapRouter
         case .lists: listsRouter
         case .profile: profileRouter

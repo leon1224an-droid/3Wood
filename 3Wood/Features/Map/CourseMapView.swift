@@ -39,7 +39,7 @@ struct CourseMapView: View {
 
     @Environment(AppNavigation.self) private var nav
     @State private var viewModel = MapViewModel()
-    @State private var searchModel = MapSearchModel()
+    @State private var results = SearchViewModel()
     @State private var quickSave = QuickSaveState()
     @State private var mode: ViewMode = .map
     @State private var typeFilter: CourseTypeFilter = .all
@@ -61,60 +61,33 @@ struct CourseMapView: View {
         @Bindable var router = nav.mapRouter
         NavigationStack(path: $router.path) {
             Group {
-                switch mode {
-                case .map: mapView
-                case .list: listView
+                // A typed query takes over the screen with course results —
+                // this tab absorbed the old Search tab, and a name search
+                // wants a list, not a repositioned camera.
+                if isSearchingCourses {
+                    resultsView
+                } else {
+                    switch mode {
+                    case .map: mapView
+                    case .list: listView
+                    }
                 }
             }
-            .navigationTitle("Map")
+            .navigationTitle("Explore")
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $citySearch, isPresented: $isSearchPresented,
                         placement: .navigationBarDrawer(displayMode: .always),
-                        prompt: "Search a city or course")
+                        prompt: "Search courses, cities, or places")
             .onChange(of: citySearch) {
-                searchModel.update(query: citySearch)
-            }
-            .searchSuggestions {
-                if !searchModel.courses.isEmpty {
-                    Section("Courses") {
-                        ForEach(searchModel.courses) { course in
-                            Button {
-                                jumpToCourse(course)
-                            } label: {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(course.name).foregroundStyle(.primary)
-                                    Text(course.locationText)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                    }
-                }
-                if !searchModel.places.isEmpty {
-                    Section("Places") {
-                        ForEach(searchModel.places, id: \.self) { place in
-                            Button {
-                                Task { await jumpToCompletion(place) }
-                            } label: {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(place.title).foregroundStyle(.primary)
-                                    if !place.subtitle.isEmpty {
-                                        Text(place.subtitle)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                results.query = citySearch
             }
             .onSubmit(of: .search) { Task { await jumpToPlace(citySearch) } }
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { stateMenu }
-                ToolbarItem(placement: .topBarTrailing) { filterMenu }
-                ToolbarItem(placement: .topBarTrailing) { modeToggle }
+                if !isSearchingCourses {
+                    ToolbarItem(placement: .topBarLeading) { stateMenu }
+                    ToolbarItem(placement: .topBarTrailing) { filterMenu }
+                    ToolbarItem(placement: .topBarTrailing) { modeToggle }
+                }
             }
             .appDestinations()
             // First open: land on the user's area instead of the whole US.
@@ -135,6 +108,46 @@ struct CourseMapView: View {
             }
         }
         .environment(router)
+    }
+
+    /// True once the query is long enough to be a course search rather than
+    /// an incidental keystroke.
+    private var isSearchingCourses: Bool {
+        citySearch.trimmingCharacters(in: .whitespaces).count >= 2
+    }
+
+    /// The old Search tab, living here now.
+    @ViewBuilder
+    private var resultsView: some View {
+        if results.results.isEmpty {
+            if results.isSearching {
+                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if results.searchFailed {
+                LoadFailedView { results.retry() }
+            } else {
+                ContentUnavailableView {
+                    Label("No courses named \"\(citySearch)\"", systemImage: "magnifyingglass")
+                } description: {
+                    Text("It might still be a place you can find on the map.")
+                } actions: {
+                    Button("Show \(citySearch) on the map") {
+                        Task { await jumpToPlace(citySearch) }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color.fairwayGreen)
+                }
+            }
+        } else {
+            List(results.results) { course in
+                NavigationLink(value: Destination.course(course)) {
+                    CourseRow(course: course, isSaved: quickSave.saved.contains(course.id))
+                }
+                .listRowBackground(Color.clear)
+                .listRowSeparatorTint(Color.sand)
+                .wantToPlaySwipe(course, state: quickSave)
+            }
+            .listStyle(.plain)
+        }
     }
 
     private var mapView: some View {
@@ -302,19 +315,6 @@ struct CourseMapView: View {
         viewModel.regionChanged(region)
     }
 
-    /// Recenter on a suggested course.
-    private func jumpToCourse(_ course: Course) {
-        isSearchPresented = false
-        citySearch = course.name
-        let region = MKCoordinateRegion(
-            center: course.coordinate,
-            span: MKCoordinateSpan(latitudeDelta: 0.15, longitudeDelta: 0.15)
-        )
-        mode = .map
-        position = .region(region)
-        viewModel.regionChanged(region)
-    }
-
     /// Resolve a suggested place completion and recenter there.
     private func jumpToCompletion(_ completion: MKLocalSearchCompletion) async {
         isSearchPresented = false
@@ -343,6 +343,9 @@ struct CourseMapView: View {
             center: item.placemark.coordinate,
             span: MKCoordinateSpan(latitudeDelta: 0.4, longitudeDelta: 0.4)
         )
+        // Clearing the query swaps the results list back out for the map.
+        citySearch = ""
+        isSearchPresented = false
         mode = .map
         position = .region(region)
         viewModel.regionChanged(region)

@@ -1,50 +1,5 @@
 import SwiftUI
 
-struct SearchView: View {
-    @Environment(AppNavigation.self) private var nav
-    @State private var viewModel = SearchViewModel()
-    @State private var quickSave = QuickSaveState()
-
-    var body: some View {
-        @Bindable var router = nav.searchRouter
-        NavigationStack(path: $router.path) {
-            Group {
-                if viewModel.results.isEmpty {
-                    if viewModel.isSearching {
-                        ProgressView()
-                    } else if viewModel.searchFailed {
-                        LoadFailedView { viewModel.retry() }
-                    } else if viewModel.query.count >= 2 {
-                        ContentUnavailableView.search(text: viewModel.query)
-                    } else {
-                        ContentUnavailableView(
-                            "Find a course",
-                            systemImage: "magnifyingglass",
-                            description: Text("Search any of 16,000+ US golf courses by name or city.")
-                        )
-                    }
-                } else {
-                    List(viewModel.results) { course in
-                        NavigationLink(value: Destination.course(course)) {
-                            CourseRow(course: course, isSaved: quickSave.saved.contains(course.id))
-                        }
-                        .listRowBackground(Color.clear)
-                        .listRowSeparatorTint(Color.sand)
-                        .wantToPlaySwipe(course, state: quickSave)
-                    }
-                    .listStyle(.plain)
-                }
-            }
-            .quickSaveAlert(quickSave)
-            .creamScreen()
-            .navigationTitle("Search")
-            .searchable(text: $viewModel.query, prompt: "Course name or city")
-            .appDestinations()
-        }
-        .environment(router)
-    }
-}
-
 /// Swipe-to-save state for a screen of course rows. `CourseRow` is built from
 /// the search/map RPCs, which don't report whether the caller has bookmarked a
 /// course, so saves are tracked optimistically for the life of the screen —
@@ -148,9 +103,4 @@ struct CourseRow: View {
             }
         }
     }
-}
-
-#Preview {
-    SearchView()
-        .environment(AppNavigation())
 }

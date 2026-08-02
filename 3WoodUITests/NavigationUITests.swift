@@ -101,9 +101,15 @@ final class NavigationUITests: XCTestCase {
         snapshot("02-Lists-WantToPlay")
         tap(app.buttons["Played"], "Played segment")
 
-        // --- Search ---
-        switchToTab("Search")
-        XCTAssertTrue(app.navigationBars["Search"].waitForExistence(timeout: timeout))
+        // --- Explore: browse the map first. Searching focuses the field and
+        // raises the keyboard, which covers the tab bar, so do the map pass
+        // before typing rather than trying to dismiss search afterwards.
+        switchToTab("Explore")
+        XCTAssertTrue(app.navigationBars["Explore"].waitForExistence(timeout: timeout))
+        sleep(2) // let pins load
+        snapshot("05-Map")
+
+        // --- Explore: course search (the old Search tab, same screen now) ---
         let searchField = app.searchFields.firstMatch
         tap(searchField, "Search field")
         searchField.typeText("pebble beach")
@@ -117,12 +123,6 @@ final class NavigationUITests: XCTestCase {
                       "Course detail did not open")
         snapshot("04-CourseDetail")
         app.navigationBars.buttons.element(boundBy: 0).tap() // back
-
-        // --- Map ---
-        switchToTab("Map")
-        XCTAssertTrue(app.navigationBars["Map"].waitForExistence(timeout: timeout))
-        sleep(2) // let pins load
-        snapshot("05-Map")
 
         // --- Profile ---
         switchToTab("Profile")
@@ -281,7 +281,7 @@ final class NavigationUITests: XCTestCase {
                       "Re-tapping the Profile tab did not pop to the root")
 
         // Map → list toggle + filter.
-        switchToTab("Map")
+        switchToTab("Explore")
         sleep(2)
         tap(app.buttons["mapModeToggle"], "Map/List toggle")
         XCTAssertTrue(app.cells.element(boundBy: 0).waitForExistence(timeout: timeout),
@@ -358,7 +358,7 @@ final class NavigationUITests: XCTestCase {
     func testReviews() {
         ensureSignedInAsDemo()
 
-        switchToTab("Search")
+        switchToTab("Explore")
         let searchField = app.searchFields.firstMatch
         tap(searchField, "Search field")
         searchField.typeText("pebble beach")
@@ -388,7 +388,7 @@ final class NavigationUITests: XCTestCase {
     /// Verifies the map city-jump (geocode + recenter + reload courses).
     func testMapCityJump() {
         ensureSignedInAsDemo()
-        switchToTab("Map")
+        switchToTab("Explore")
         snapshot("22-Map-Controls")
 
         let search = app.searchFields.firstMatch
