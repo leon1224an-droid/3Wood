@@ -78,11 +78,18 @@ feed, course detail, friend profile, ranked list, map. Re-capture on
 - Demo account (hosted): `3woodapp+review@gmail.com`, username **@demo_golfer**.
   Seeded 2026-08-02 and verified signing in: Pebble Beach 9.2, Spyglass Hill
   7.5, Torrey Pines North 5.0, Bethpage bookmarked, one review on Pebble.
-  **The password is not recorded here — this repo is public.** It lives in App
-  Store Connect → App Information → App Review Information, which is where
-  reviewers read it from anyway. (The previous account, `appreview@example.com`,
-  stopped authenticating and its password was committed here in plaintext;
-  don't repeat that.)
+  **The password is not recorded here — this repo is public.** It goes in App
+  Store Connect, in two separate places depending on the review:
+  - **TestFlight** → Test Information → *Beta App Review Information* →
+    sign-in required + username/password.
+  - **App Store submission** → Distribution → the version (e.g. "1.0 Prepare
+    for Submission") → *App Review Information* → Sign-In Required. This
+    section does not exist until an App Store version has been created, so
+    don't go hunting for it during a TestFlight-only phase.
+
+  (It is NOT under "App Information" — that page is name/subtitle/category.
+  The previous account, `appreview@example.com`, stopped authenticating and its
+  password was committed here in plaintext; don't repeat either mistake.)
   **Re-check this account signs in before every submission.** Reviewers are
   asked to test account deletion (5.1.1(v)), and the app's own Delete Account
   button will remove it — if that happens, recreate it and update this note.
