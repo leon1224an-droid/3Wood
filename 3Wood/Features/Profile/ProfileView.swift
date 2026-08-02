@@ -5,6 +5,7 @@ struct ProfileView: View {
     @Environment(SessionStore.self) private var session
     @Environment(AppNavigation.self) private var nav
     @State private var stats: ProfileStats?
+    @State private var weekStreak: Int?
     @State private var wantToPlayCount: Int?
     @State private var myPhone: String?
     @State private var isEditingPhone = false
@@ -47,6 +48,12 @@ struct ProfileView: View {
                                     FollowChip(count: stats?.following, label: "Following")
                                 }
                                 .buttonStyle(.plain)
+                            }
+                            // Its own line: the follower chips already split the
+                            // width evenly, and a third item squeezes them at
+                            // larger text sizes.
+                            if let weekStreak, weekStreak > 0 {
+                                StreakChip(weeks: weekStreak)
                             }
                         }
                         .padding(.vertical, 6)
@@ -180,6 +187,7 @@ struct ProfileView: View {
     private func reloadCounts() async {
         guard let myID else { return }
         stats = try? await SocialRepo.stats(of: myID)
+        weekStreak = try? await FeedRepo.weekStreak()
         wantToPlayCount = (try? await WantToPlayRepo.list())?.count
         myPhone = try? await PhoneRepo.myPhone()
     }

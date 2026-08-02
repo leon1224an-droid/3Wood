@@ -105,7 +105,22 @@ def main():
     with psycopg.connect(db_url) as conn:
         with conn.cursor() as cur:
             cur.executemany(UPSERT, rows)
-            cur.execute("delete from public.courses where external_id like 'seed:%'")
+            # Drop the dev fixture courses the real dataset supersedes — but
+            # never one that dev fixture data points at. courses cascades on
+            # delete, so removing a referenced row silently takes the seeded
+            # rankings, bookmarks and reviews with it.
+            cur.execute(
+                """
+                delete from public.courses c
+                 where c.external_id like 'seed:%'
+                   and not exists (select 1 from public.user_course_rankings r
+                                    where r.course_id = c.id)
+                   and not exists (select 1 from public.want_to_play w
+                                    where w.course_id = c.id)
+                   and not exists (select 1 from public.reviews rv
+                                    where rv.course_id = c.id)
+                """
+            )
             cur.execute("select count(*) from public.courses")
             print(f"courses table now holds {cur.fetchone()[0]} rows")
 

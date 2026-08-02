@@ -106,33 +106,8 @@ struct ListsView: View {
         .environment(router)
     }
 
-    /// Flat editorial tabs: active tab underlined in fairway green over a
-    /// full-width sand hairline (replaces the stock segmented control).
     private var segmentTabs: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                ForEach(Segment.allCases) { seg in
-                    Button {
-                        withAnimation(.easeOut(duration: 0.15)) { segment = seg }
-                    } label: {
-                        VStack(spacing: 8) {
-                            Text(seg.rawValue)
-                                .font(.subheadline.weight(segment == seg ? .semibold : .regular))
-                                .foregroundStyle(segment == seg ? Color.darkPine : .secondary)
-                            Rectangle()
-                                .fill(segment == seg ? Color.fairwayGreen : .clear)
-                                .frame(height: 2)
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .frame(maxWidth: .infinity)
-                    .accessibilityAddTraits(segment == seg ? [.isButton, .isSelected] : .isButton)
-                }
-            }
-            .padding(.horizontal)
-            Rectangle().fill(Color.sand).frame(height: 1)
-        }
+        SegmentTabs(items: Segment.allCases, title: \.rawValue, selection: $segment)
     }
 
     @ViewBuilder

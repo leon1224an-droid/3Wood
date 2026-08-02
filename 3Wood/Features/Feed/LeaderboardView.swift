@@ -5,17 +5,41 @@ struct LeaderboardView: View {
     /// Rank roundel grows with the user's text size.
     @ScaledMetric(relativeTo: .body) private var medalSize: CGFloat = 36
     @State private var entries: [LeaderboardEntry] = []
+    @State private var period: LeaderboardPeriod = .week
     @State private var isLoading = true
     @State private var loadFailed = false
 
     var body: some View {
+        VStack(spacing: 0) {
+            SegmentTabs(items: LeaderboardPeriod.allCases, title: \.rawValue, selection: $period)
+            content
+        }
+        .creamScreen()
+        .navigationTitle("Leaderboard")
+        .navigationBarTitleDisplayMode(.inline)
+        .task(id: period) { await reload() }
+    }
+
+    @ViewBuilder
+    private var content: some View {
         Group {
             if isLoading {
-                ProgressView()
+                ProgressView().frame(maxHeight: .infinity)
             } else if loadFailed, entries.isEmpty {
                 LoadFailedView { await reload() }
             } else if entries.isEmpty {
-                ContentUnavailableView("No rankings yet", systemImage: "trophy")
+                // An empty week is normal on a Monday and means something very
+                // different from an empty all-time board.
+                switch period {
+                case .week:
+                    ContentUnavailableView(
+                        "Nobody's logged a course yet this week",
+                        systemImage: "calendar",
+                        description: Text("Log one and you'll be top of the board.")
+                    )
+                case .allTime:
+                    ContentUnavailableView("No rankings yet", systemImage: "trophy")
+                }
             } else {
                 List(entries) { entry in
                     HStack(spacing: 14) {
@@ -76,15 +100,11 @@ struct LeaderboardView: View {
                 .refreshable { await reload() }
             }
         }
-        .creamScreen()
-        .navigationTitle("Leaderboard")
-        .navigationBarTitleDisplayMode(.inline)
-        .task { await reload() }
     }
 
     private func reload() async {
         do {
-            entries = try await FeedRepo.leaderboard()
+            entries = try await FeedRepo.leaderboard(period: period)
             loadFailed = false
         } catch {
             loadFailed = true

@@ -35,12 +35,43 @@ anything else. Sequence it first or those three items each pay the cost separate
 | 10 | "Link your number text is wordy and not next to phone number" | `ProfileView.swift` — Section `footer:` | Confirmed: the copy sits in the section footer, three rows below the "Phone number" row it describes. Move it inline as row subtext and cut it to ~5 words ("Friends can find you by number"). The longer explanation already exists in `PhoneLinkSheet`'s own footer, so nothing is lost. |
 | 6 | "When finding friends through contacts, ability to go back" | `FindFriendsView.swift` | **Cause confirmed from UI-test screenshots, no tester question needed.** `ContactsMatchView` has a normal back button (see snapshot `27-Contacts`). The screen that loses it is `FindFriendsView`: snapshot `07-FindFriends` shows that once the search field is focused, the whole navigation bar is replaced by a lone dismiss-search "✕" — the route *to* contacts is the dead end, not contacts itself. Fixed with `.searchPresentationToolbarBehavior(.avoidHidingContent)`, availability-guarded since the deployment target is 17.0 and the modifier is 17.1+. Re-ran the test: back chevron and title now stay put with the keyboard up. |
 
-## Tranche 2 — cheap backend (~1 migration each)
+## Tranche 2 — implemented on `beta-feedback-tranche-1`, not merged
 
-| # | Feedback | Cost |
+Migration `00160000000000_leaderboard_period_streak.sql`.
+
+**The finding that shaped this tranche:** neither feature could be built on
+`created_at`. `insert_ranking` re-logs by deleting and re-inserting (defined in
+`00050`, *not* `00040` — 00050 redefines it to also clear the want-to-play row), so
+re-ranking a course first played in 2019 stamps it with today. A weekly board would
+have counted re-logs as new courses, and a "streak of adding courses" would have
+survived on re-ranking the same course every week — the opposite of what it rewards.
+Fixed additively with a `first_ranked_at` column carried across re-ranks; `created_at`
+keeps its meaning ("last logged") so the Played list's "Recently logged" sort is
+untouched. Verified: after a re-rank, `first_ranked_at` was still 200 days old while
+`created_at` reset to today.
+
+| # | Feedback | Shipped |
 |---|---|---|
-| 4 | Weekly + all-time contributor rankings | `leaderboard()` already exists and returns rank/played. Add a `period` argument with a `created_at >= now() - interval '7 days'` filter (next migration is `00160000000000_*`), then a segment control in `LeaderboardView` — reuse the flat underlined `segmentTabs` from `ListsView` rather than a stock picker. |
-| 3 | Week streak of adding courses | A `streak_weeks()` RPC over `user_course_rankings.created_at`, surfaced on `ProfileView` (and optionally as a leaderboard column). **Product decision needed:** consecutive ISO weeks with ≥1 log? Does the current in-progress week count? Streaks are a retention lever — worth deciding deliberately, not defaulting. |
+| 4 | Weekly + all-time contributor rankings | `leaderboard(p_period text default 'all')`. The parameter is **defaulted on purpose**: TestFlight build 2 is in the wild calling `leaderboard()` with no arguments, and a defaulted parameter keeps that call resolving. Confirmed against PostgREST rather than assumed — the no-arg POST returns 200 after the migration. `LeaderboardView` gets This Week / All Time tabs. |
+| 3 | Week streak of adding courses | `streak_weeks(p_user uuid default null)` — gaps-and-islands over distinct log weeks. Shown as a chip on `ProfileView`. The `p_user` parameter costs nothing now and is what a streak-on-the-leaderboard would need later. |
+
+**Streak definition (decided, not defaulted into):** consecutive calendar weeks
+containing at least one *newly added* course. The current week counts once it has a
+log; if it doesn't yet, the streak still counts through last week, so it doesn't
+collapse to zero every Monday morning. A two-week gap ends it. Weeks are Monday-based
+in the server's timezone (UTC), so a Sunday-evening round on the US west coast counts
+toward the following week — a real edge, not worth timezone plumbing at this scale.
+
+### Verification
+
+Seven cases against the local stack in a rolled-back transaction, since seed data is
+all stamped "now" and would make these tests vacuous: streak with a gap → 2 (not 4),
+grace period with nothing logged this week → 2, only a stale 3-week-old log → 0, no
+rankings → 0, five unbroken weeks → 5, two logs in one week → 2 (no double-count),
+and the weekly board showing 1 where all-time shows 3.
+
+`SegmentTabs` was extracted from `ListsView` into `Core/DesignSystem` so the
+leaderboard's switcher is literally the same control rather than a lookalike.
 
 ## Tranche 3 — the social layer (the big one)
 
@@ -89,6 +120,35 @@ One known limit of the tap-target fix: the 44pt hit areas overlap between adjace
 pins in dense metros, and the topmost in z-order wins. Still strictly better than a
 12pt dot, but clustered courses won't feel fully fixed — clustering or
 zoom-dependent sizing is the real answer if testers raise it again.
+
+## Local dev environment — read before the next `supabase db reset`
+
+Running `supabase db reset` while building tranche 2 destroyed local dev data that
+existed **only** in the local database: the ~16k imported courses, and the fixture
+accounts (`birdie_ben`, `test1`, `mulligan_mike`) with their rankings, follows and
+reviews. `seed.sql` held 15 courses and no accounts, and the UI tests *sign in* as
+`birdie_ben@example.com` rather than creating it — so a reset silently removed the
+thing every test depends on.
+
+Fixed so it can't happen the same way again:
+
+- All six fixture accounts, their rankings, follows, bookmarks and reviews are now
+  defined in `seed.sql`, so `db reset` reproduces them. Password `testpass123`.
+  (`auth.users` needs `confirmation_token` / `recovery_token` /
+  `email_change_token_new` / `email_change` set to `''` rather than left NULL —
+  GoTrue scans them into non-nullable strings and every sign-in fails with
+  "Database error querying schema" otherwise.)
+- `scripts/seed_courses.py` used to end with
+  `delete from courses where external_id like 'seed:%'`. `courses` cascades on
+  delete, so that would now silently take the seeded rankings/bookmarks/reviews with
+  it. It now skips any fixture course that dev data references.
+- Spyglass Hill was added to the seed because `testLogCourseFlow` logs it; the whole
+  suite now passes on seed data alone, with no import required.
+
+**Still missing:** the ~16k real courses. Re-import with
+`DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres python3
+scripts/seed_courses.py` (hits OpenGolfAPI for 51 states, few minutes). Not run
+automatically — it's a long external fetch.
 
 ## Recommended order
 
