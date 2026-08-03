@@ -149,6 +149,29 @@ struct ActivityDetailView: View {
                             Text(comment.createdAt.formatted(.relative(presentation: .named)))
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
+                            // Visible, not long-press-only. Delete and report
+                            // lived solely in a context menu, which is the same
+                            // reason "can't delete photos" got reported.
+                            Menu {
+                                if comment.isMine {
+                                    Button("Delete", systemImage: "trash", role: .destructive) {
+                                        Task { await delete(comment) }
+                                    }
+                                } else {
+                                    Button("Report comment", systemImage: "flag") {
+                                        reportedComment = comment
+                                    }
+                                }
+                            } label: {
+                                Image(systemName: "ellipsis")
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
+                            }
+                            .accessibilityLabel(comment.isMine
+                                                ? "Comment actions"
+                                                : "Report @\(comment.username)'s comment")
                         }
                         Text(comment.body).font(.subheadline)
                     }
@@ -202,6 +225,12 @@ struct ActivityDetailView: View {
     private func reload() async {
         do {
             comments = try await ActivityRepo.comments(activityID: item.activityID)
+            // Refresh the activity itself too: counts drift while the screen is
+            // open, and an activity deleted underneath us should stop looking
+            // like it's still there.
+            if let fresh = try? await ActivityRepo.activity(id: item.activityID) {
+                live = fresh
+            }
             loadFailed = false
         } catch {
             loadFailed = true
@@ -212,12 +241,14 @@ struct ActivityDetailView: View {
     private func toggle(_ emoji: String) async {
         // Move first; waiting on the network to light a chip makes the whole
         // bar feel broken.
-        let snapshot = live
         live.applyToggle(emoji)
         do {
             try await ActivityRepo.toggleReaction(activityID: item.activityID, emoji: emoji)
+            NotificationCenter.default.post(name: .activityChanged, object: item.activityID)
         } catch {
-            live = snapshot
+            // Undo just this emoji — see FeedView.react for why a whole-struct
+            // restore is wrong.
+            live.applyToggle(emoji)
             actionError = "Couldn't save that reaction. \(error.localizedDescription)"
         }
     }
@@ -231,6 +262,7 @@ struct ActivityDetailView: View {
             draft = ""
             composerFocused = false
             await reload()
+            NotificationCenter.default.post(name: .activityChanged, object: item.activityID)
         } catch {
             actionError = "Couldn't post that comment. \(error.localizedDescription)"
         }
@@ -241,6 +273,7 @@ struct ActivityDetailView: View {
         do {
             try await ActivityRepo.deleteComment(id: comment.id)
             await reload()
+            NotificationCenter.default.post(name: .activityChanged, object: item.activityID)
         } catch {
             actionError = "Couldn't delete that comment. \(error.localizedDescription)"
         }

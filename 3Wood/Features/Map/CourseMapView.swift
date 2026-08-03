@@ -73,6 +73,7 @@ struct CourseMapView: View {
                     }
                 }
             }
+            .creamScreen()
             .navigationTitle("Explore")
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $citySearch, isPresented: $isSearchPresented,
@@ -249,6 +250,7 @@ struct CourseMapView: View {
                     if typeFilter != .all {
                         activeFilterChip
                             .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
                     }
                     ForEach(filteredCourses.sorted { ($0.avgScore ?? -1) > ($1.avgScore ?? -1) }) { course in
                         NavigationLink(value: Destination.course(course)) {
@@ -261,7 +263,6 @@ struct CourseMapView: View {
                 }
                 .listStyle(.plain)
                 .quickSaveAlert(quickSave)
-                .creamScreen()
             }
         }
     }

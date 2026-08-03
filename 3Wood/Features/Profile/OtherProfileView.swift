@@ -72,7 +72,7 @@ struct OtherProfileView: View {
                                     .foregroundStyle(.secondary)
                                     .frame(minWidth: 24, alignment: .trailing)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(course.name).lineLimit(1)
+                                    Text(course.name).lineLimit(2)
                                     Text(course.locationText)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)

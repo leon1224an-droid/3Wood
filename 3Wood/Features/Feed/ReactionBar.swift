@@ -18,13 +18,16 @@ struct ReactionBar: View {
                 } label: {
                     HStack(spacing: 4) {
                         Text(chip.emoji)
+                            // Matches the add/comment chips beside it; the
+                            // inherited .body made emoji chips ~4pt taller.
+                            .font(.subheadline)
                         Text("\(chip.count)")
                             .font(.caption.weight(.medium))
                             .monospacedDigit()
                             .foregroundStyle(chip.mine ? Color.fairwayGreen : .secondary)
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
                     .background(
                         Capsule().fill(chip.mine
                                        ? Color.fairwayGreen.opacity(0.12)
@@ -36,6 +39,12 @@ struct ReactionBar: View {
                             lineWidth: 1
                         )
                     )
+                    // The capsule stays its natural ~32pt so the row doesn't
+                    // get heavy; the transparent frame around it brings the
+                    // touch area up to the 44pt minimum. Same fix the map pins
+                    // needed.
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("\(Reaction.label(for: chip.emoji)), \(chip.count)")
@@ -60,9 +69,11 @@ struct ReactionBar: View {
                 }
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
                 .overlay(Capsule().strokeBorder(Color.sand, lineWidth: 1))
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
             }
             .accessibilityLabel("Add a reaction")
         }

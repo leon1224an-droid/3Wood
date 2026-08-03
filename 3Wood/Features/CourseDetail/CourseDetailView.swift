@@ -56,7 +56,11 @@ struct CourseDetailView: View {
                         ScoreBadge(score: myRanking.score)
                     }
                     .padding()
+                    // Emphasised member of the card family — keeps the green
+                    // tint but takes the same sand hairline as its siblings,
+                    // which otherwise read as three unrelated components.
                     .background(Color.fairwayGreen.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.sand, lineWidth: 1))
                 }
 
                 // Community rating card
@@ -110,7 +114,7 @@ struct CourseDetailView: View {
                         }
                     }
                     .padding()
-                    .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
+                    .card()
                 }
 
                 Button {
@@ -285,6 +289,21 @@ struct CourseDetailView: View {
                             Text(review.createdAt.formatted(.relative(presentation: .named)))
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
+                            // Reporting was long-press-only here too.
+                            if !review.isMine {
+                                Menu {
+                                    Button("Report review", systemImage: "flag") {
+                                        reportedReview = review
+                                    }
+                                } label: {
+                                    Image(systemName: "ellipsis")
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                        .frame(width: 44, height: 44)
+                                        .contentShape(Rectangle())
+                                }
+                                .accessibilityLabel("Report @\(review.username)'s review")
+                            }
                         }
                         Text(review.body)
                             .font(.subheadline)

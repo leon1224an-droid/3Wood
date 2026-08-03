@@ -89,6 +89,18 @@ struct FeedView: View {
             .onReceive(NotificationCenter.default.publisher(for: .unreadCountChanged)) { _ in
                 Task { unread = (try? await ActivityRepo.unreadCount()) ?? 0 }
             }
+            // Commenting or reacting on the detail screen changes counts the
+            // feed is showing. Refetch just that row rather than the whole
+            // feed, so scroll position and everything else stays put.
+            .onReceive(NotificationCenter.default.publisher(for: .activityChanged)) { note in
+                guard let id = note.object as? Int else { return }
+                Task {
+                    if let fresh = try? await ActivityRepo.activity(id: id),
+                       let index = items.firstIndex(where: { $0.activityID == id }) {
+                        items[index] = fresh
+                    }
+                }
+            }
             .alert("Something went wrong", isPresented: .init(
                 get: { actionError != nil },
                 set: { if !$0 { actionError = nil } }
@@ -115,14 +127,15 @@ struct FeedView: View {
     /// Optimistic: the chip moves before the round trip, and rolls back if the
     /// write fails.
     private func react(_ emoji: String, on item: Binding<FeedItem>) async {
-        let snapshot = item.wrappedValue
+        let activityID = item.wrappedValue.activityID
         item.wrappedValue.applyToggle(emoji)
         do {
-            try await ActivityRepo.toggleReaction(
-                activityID: snapshot.activityID, emoji: emoji
-            )
+            try await ActivityRepo.toggleReaction(activityID: activityID, emoji: emoji)
         } catch {
-            item.wrappedValue = snapshot
+            // Undo only this emoji. Restoring a whole snapshot would also wipe
+            // a different reaction the user tapped while this call was still in
+            // flight — and that one may have succeeded.
+            item.wrappedValue.applyToggle(emoji)
             actionError = "Couldn't save that reaction. \(error.localizedDescription)"
         }
     }

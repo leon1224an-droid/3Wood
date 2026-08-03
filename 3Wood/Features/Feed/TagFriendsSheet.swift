@@ -48,6 +48,7 @@ struct TagFriendsSheet: View {
                     )
                 } else {
                     List(visible) { person in
+                        // (empty-search state handled by the overlay below)
                         TagRow(person: person, isSelected: selected.contains(person.id)) {
                             if selected.contains(person.id) {
                                 selected.remove(person.id)
@@ -57,6 +58,11 @@ struct TagFriendsSheet: View {
                         }
                     }
                     .listStyle(.plain)
+                    .overlay {
+                        if visible.isEmpty, !query.trimmingCharacters(in: .whitespaces).isEmpty {
+                            ContentUnavailableView.search(text: query)
+                        }
+                    }
                     .searchable(text: $query, prompt: "Search people you follow")
                     .keepsBackButtonDuringSearch()
                 }
@@ -120,7 +126,12 @@ struct TagFriendsSheet: View {
     }
 
     private func load() async {
-        guard let myID else { isLoading = false; return }
+        guard let myID else {
+            // A missing session isn't "you follow nobody" — say so honestly.
+            loadFailed = true
+            isLoading = false
+            return
+        }
         do {
             friends = try await SocialRepo.following(of: myID)
             selected = Set(

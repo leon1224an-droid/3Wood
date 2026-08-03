@@ -160,7 +160,7 @@ struct ListsView: View {
                                     .frame(minWidth: 28, alignment: .trailing)
                             }
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(course.name).lineLimit(1)
+                                Text(course.name).lineLimit(2)
                                 Text(course.locationText)
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)

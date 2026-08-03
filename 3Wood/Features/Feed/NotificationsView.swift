@@ -130,4 +130,8 @@ extension Notification.Name {
     /// Posted when the inbox is read, so the Feed's badge can refresh without
     /// the two screens holding a reference to each other.
     static let unreadCountChanged = Notification.Name("unreadCountChanged")
+
+    /// Posted with an activity id when its comments or reactions change, so a
+    /// feed row showing stale counts can refresh itself.
+    static let activityChanged = Notification.Name("activityChanged")
 }

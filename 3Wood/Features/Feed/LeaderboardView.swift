@@ -67,13 +67,14 @@ struct LeaderboardView: View {
                         Text("^[\(entry.played) course](inflect: true)")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        // Your own row is not a link — nothing to follow.
-                        if !entry.isMe {
-                            Image(systemName: "chevron.right")
-                                .font(.caption.bold())
-                                .foregroundStyle(.tertiary)
-                                .accessibilityHidden(true)
-                        }
+                        // Your own row is not a link — nothing to follow — but
+                        // the chevron still holds its space, or the trailing
+                        // column steps 24pt left on that one row.
+                        Image(systemName: "chevron.right")
+                            .font(.caption.bold())
+                            .foregroundStyle(.tertiary)
+                            .opacity(entry.isMe ? 0 : 1)
+                            .accessibilityHidden(true)
                     }
                     .listRowBackground(entry.isMe ? Color.fairwayGreen.opacity(0.12) : Color.clear)
                     .listRowSeparatorTint(Color.sand)

@@ -223,7 +223,10 @@ struct StreakBadge: View {
                 .font(.subheadline.weight(.medium))
                 .monospacedDigit()
         }
-        .foregroundStyle(Color.sunriseGold)
+        // medalGold, not sunriseGold: the lighter gold is ~2:1 on cream, so a
+        // highlight ended up less readable than the secondary text beside it.
+        // RankResultView made the same call for the big numeral.
+        .foregroundStyle(Color.medalGold)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("^[\(weeks) week](inflect: true) streak of adding courses")
     }

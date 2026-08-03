@@ -68,9 +68,13 @@ enum PhotoRepo {
         }
     }
 
+    /// Removes the file first, then the index row. The bucket is public, so a
+    /// row deleted while its object survives would leave a "deleted" photo
+    /// still fetchable by URL — worse than the reverse, where a surviving row
+    /// just renders a placeholder.
     static func delete(_ photo: CoursePhoto) async throws {
+        try await supa.storage.from(bucket).remove(paths: [photo.storagePath])
         try await supa.from("course_photos").delete().eq("id", value: photo.id).execute()
-        try? await supa.storage.from(bucket).remove(paths: [photo.storagePath])
     }
 
     /// Long edge capped so a modern phone photo doesn't ship 4 MB of pixels

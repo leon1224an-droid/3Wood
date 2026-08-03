@@ -21,6 +21,8 @@ struct SegmentTabs<Item: Hashable & Identifiable>: View {
                         VStack(spacing: 8) {
                             Text(title(item))
                                 .font(.subheadline.weight(selection == item ? .semibold : .regular))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
                                 .foregroundStyle(selection == item ? Color.darkPine : .secondary)
                             Rectangle()
                                 .fill(selection == item ? Color.fairwayGreen : .clear)
