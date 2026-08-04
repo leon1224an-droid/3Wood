@@ -129,7 +129,8 @@ struct ProfileView: View {
             .listStyle(.plain)
             .listRowSeparatorTint(Color.sand)
             .creamScreen()
-            .navigationTitle("Profile")
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
             // Counts go stale while the tab stays mounted — reload whenever the
             // screen comes back into view (tab switch or popping a child).
             .onAppear { Task { await reloadCounts() } }

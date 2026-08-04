@@ -126,7 +126,8 @@ final class NavigationUITests: XCTestCase {
 
         // --- Profile ---
         switchToTab("Profile")
-        XCTAssertTrue(app.navigationBars["Profile"].waitForExistence(timeout: timeout))
+        XCTAssertTrue(app.buttons["Find friends"].waitForExistence(timeout: timeout),
+                      "Profile screen did not appear")
         snapshot("06-Profile")
 
         // --- About (visited first so it doesn't depend on the friend detour) ---
@@ -134,7 +135,8 @@ final class NavigationUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Course data"].waitForExistence(timeout: timeout))
         snapshot("09-About")
         goBack()
-        XCTAssertTrue(app.navigationBars["Profile"].waitForExistence(timeout: timeout))
+        XCTAssertTrue(app.buttons["Find friends"].waitForExistence(timeout: timeout),
+                      "Profile screen did not appear")
 
         // --- Find friends → contacts matching entry ---
         tap(app.buttons["Find friends"], "Find friends row")
@@ -277,7 +279,7 @@ final class NavigationUITests: XCTestCase {
 
         // Re-tapping the active tab pops its stack back to the root.
         app.tabBars.buttons["Profile"].tap()
-        XCTAssertTrue(app.navigationBars["Profile"].waitForExistence(timeout: timeout),
+        XCTAssertTrue(app.buttons["Find friends"].waitForExistence(timeout: timeout),
                       "Re-tapping the Profile tab did not pop to the root")
 
         // Map → list toggle + filter.

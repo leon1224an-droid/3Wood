@@ -25,8 +25,6 @@ struct CourseDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(course.name)
-                        .font(.title2.bold())
                     Text(course.locationText)
                         .foregroundStyle(.secondary)
                     HStack(spacing: 12) {
@@ -125,15 +123,6 @@ struct CourseDetailView: View {
                 }
                 .buttonStyle(.primary)
 
-                if myRanking != nil {
-                    Button("Remove from my courses") {
-                        isConfirmingRemoval = true
-                    }
-                    .font(.subheadline)
-                    .foregroundStyle(Color.clayRed)
-                    .frame(maxWidth: .infinity)
-                }
-
                 CoursePhotosSection(courseID: course.id)
 
                 reviewsSection
@@ -171,12 +160,23 @@ struct CourseDetailView: View {
                     }
                     .tint(Color.fairwayGreen)
                 }
+
+                // Destructive, so it lives at the end rather than beside the
+                // primary action it used to sit under.
+                if myRanking != nil {
+                    Button("Remove from my courses") {
+                        isConfirmingRemoval = true
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(Color.clayRed)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 8)
+                }
             }
             .padding()
         }
         .creamScreen()
         .navigationTitle(course.name)
-        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
