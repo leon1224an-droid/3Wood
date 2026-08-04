@@ -78,7 +78,7 @@ struct ComparisonView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 28)
-            .background(Color(.systemBackground).opacity(0.6), in: RoundedRectangle(cornerRadius: 16))
+            .card(cornerRadius: 16)
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
                     .strokeBorder(Color.sand, lineWidth: 1)

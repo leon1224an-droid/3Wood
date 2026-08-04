@@ -31,6 +31,7 @@ struct FindFriendsView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .listRowBackground(Color.clear)
                 ShareLink(
                     item: Invite.link(from: myUsername),
                     message: Text(Invite.message(from: myUsername))
@@ -38,6 +39,7 @@ struct FindFriendsView: View {
                     Label("Invite friends", systemImage: "paperplane")
                         .foregroundStyle(.primary)
                 }
+                .listRowBackground(Color.clear)
             } footer: {
                 Text("Search by username, or match your contacts to see how your friends rate the courses you've played.")
             }

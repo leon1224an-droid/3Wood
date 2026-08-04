@@ -54,6 +54,7 @@ struct OtherProfileView: View {
                 }
                 .padding(.vertical, 6)
             }
+            .listRowBackground(Color.clear)
 
             Section("Their courses") {
                 if ranked.isEmpty {
@@ -90,7 +91,10 @@ struct OtherProfileView: View {
                     }
                 }
             }
+            .listRowBackground(Color.clear)
         }
+        .listStyle(.plain)
+        .listRowSeparatorTint(Color.sand)
         .creamScreen()
         .navigationTitle("@\(person.username)")
         .navigationBarTitleDisplayMode(.inline)

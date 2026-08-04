@@ -111,9 +111,9 @@ struct CoursePhotosSection: View {
                 }
             }
             .frame(width: 140, height: 105)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
-                RoundedRectangle(cornerRadius: 10).strokeBorder(Color.sand, lineWidth: 1)
+                RoundedRectangle(cornerRadius: 12).strokeBorder(Color.sand, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)

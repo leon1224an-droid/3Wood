@@ -58,12 +58,14 @@ struct ProfileView: View {
                         }
                         .padding(.vertical, 6)
                     }
+                    .listRowBackground(Color.clear)
                 }
 
                 Section {
                     listLink("Courses played", count: stats?.played, segment: .played)
                     listLink("Want to play", count: wantToPlayCount, segment: .wantToPlay)
                 }
+                .listRowBackground(Color.clear)
 
                 Section {
                     NavigationLink(value: Destination.findFriends) {
@@ -110,6 +112,7 @@ struct ProfileView: View {
                         Label("About", systemImage: "info.circle")
                     }
                 }
+                .listRowBackground(Color.clear)
 
                 Section {
                     Button("Sign out") {
@@ -121,7 +124,10 @@ struct ProfileView: View {
                     }
                     .foregroundStyle(Color.clayRed)
                 }
+                .listRowBackground(Color.clear)
             }
+            .listStyle(.plain)
+            .listRowSeparatorTint(Color.sand)
             .creamScreen()
             .navigationTitle("Profile")
             // Counts go stale while the tab stays mounted — reload whenever the

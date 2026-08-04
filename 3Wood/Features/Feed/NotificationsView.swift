@@ -3,6 +3,9 @@ import SwiftUI
 /// The alert feed: new followers, and reactions/comments on your activity.
 struct NotificationsView: View {
     @Environment(Router.self) private var router
+    /// Grows with the user's text size — a fixed column clipped the emoji at
+    /// accessibility sizes.
+    @ScaledMetric(relativeTo: .subheadline) private var iconColumn: CGFloat = 26
     @State private var items: [AppNotification] = []
     @State private var isLoading = true
     @State private var loadFailed = false
@@ -23,7 +26,7 @@ struct NotificationsView: View {
                 List(items) { item in
                     row(item)
                         .listRowBackground(item.isUnread
-                                           ? Color.fairwayGreen.opacity(0.08)
+                                           ? Color.sand.opacity(0.45)
                                            : Color.clear)
                         .listRowSeparatorTint(Color.sand)
                         .contentShape(Rectangle())
@@ -49,7 +52,9 @@ struct NotificationsView: View {
     }
 
     private func row(_ item: AppNotification) -> some View {
-        HStack(spacing: 12) {
+        // Top-aligned: on two-line rows a centred icon floated between the
+        // lines instead of sitting with the first one.
+        HStack(alignment: .top, spacing: 12) {
             Group {
                 switch item.kind {
                 case "follow":
@@ -68,7 +73,7 @@ struct NotificationsView: View {
                         .foregroundStyle(Color.fairwayGreen)
                 }
             }
-            .frame(width: 26)
+            .frame(width: iconColumn)
             .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
