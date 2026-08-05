@@ -11,6 +11,9 @@ struct CourseVisitsSection: View {
     @State private var visits: [CourseVisit] = []
     @State private var isLoading = true
     @State private var isCheckingIn = false
+    @State private var loadFailed = false
+    @State private var showingAll = false
+    @State private var pendingDelete: CourseVisit?
     @State private var newDate = Date()
     @State private var actionError: String?
 
@@ -33,13 +36,15 @@ struct CourseVisitsSection: View {
 
                 if isLoading {
                     ProgressView().frame(maxWidth: .infinity)
+                } else if loadFailed, visits.isEmpty {
+                    LoadFailedView { await reload() }
                 } else if visits.isEmpty {
                     Text("No rounds recorded yet.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 } else {
                     VStack(spacing: 0) {
-                        ForEach(Array(visits.enumerated()), id: \.element.id) { index, visit in
+                        ForEach(Array(shown.enumerated()), id: \.element.id) { index, visit in
                             HStack {
                                 Image(systemName: "flag")
                                     .font(.caption)
@@ -48,34 +53,59 @@ struct CourseVisitsSection: View {
                                 Text(PlayDate.display(visit.playedOn))
                                     .font(.subheadline)
                                 Spacer()
-                                if index == 0, visits.count > 1 {
+                                if index == 0, shown.count > 1 {
                                     Text("most recent")
                                         .font(.caption)
                                         .foregroundStyle(.tertiary)
                                 }
                                 Button {
-                                    Task { await remove(visit) }
+                                    pendingDelete = visit
                                 } label: {
                                     Image(systemName: "xmark")
                                         .font(.caption)
-                                        .foregroundStyle(.tertiary)
+                                        .foregroundStyle(Color.clayRed)
                                         .frame(width: 44, height: 44)
                                         .contentShape(Rectangle())
                                 }
                                 .accessibilityLabel("Remove round on \(PlayDate.display(visit.playedOn))")
                             }
-                            if index < visits.count - 1 {
+                            if index < shown.count - 1 {
                                 Rectangle().fill(Color.sand).frame(height: 1)
                             }
                         }
                     }
                     .padding(.horizontal)
                     .card()
+
+                    if visits.count > collapsedLimit {
+                        Button(showingAll
+                               ? "Show fewer"
+                               : "Show all ^[\(visits.count) round](inflect: true)") {
+                            withAnimation { showingAll.toggle() }
+                        }
+                        .font(.subheadline)
+                        .tint(Color.fairwayGreen)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                    }
                 }
             }
             .task { await reload() }
             .sheet(isPresented: $isCheckingIn) {
                 checkInSheet
+            }
+            .confirmationDialog(
+                "Remove the round on \(PlayDate.display(pendingDelete?.playedOn ?? ""))?",
+                isPresented: .init(
+                    get: { pendingDelete != nil },
+                    set: { if !$0 { pendingDelete = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                Button("Remove round", role: .destructive) {
+                    if let visit = pendingDelete {
+                        Task { await remove(visit) }
+                    }
+                }
             }
             .alert("Something went wrong", isPresented: .init(
                 get: { actionError != nil },
@@ -113,8 +143,21 @@ struct CourseVisitsSection: View {
         }
     }
 
+    /// Long histories collapse: a home course with 30 rounds would otherwise
+    /// push photos and reviews off the page.
+    private let collapsedLimit = 5
+
+    private var shown: [CourseVisit] {
+        showingAll ? visits : Array(visits.prefix(collapsedLimit))
+    }
+
     private func reload() async {
-        visits = (try? await RankingRepo.visits(courseID: courseID)) ?? visits
+        do {
+            visits = try await RankingRepo.visits(courseID: courseID)
+            loadFailed = false
+        } catch {
+            loadFailed = true
+        }
         isLoading = false
     }
 

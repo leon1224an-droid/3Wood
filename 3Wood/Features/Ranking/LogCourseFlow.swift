@@ -38,13 +38,14 @@ struct LogCourseFlow: View {
                     ) { answer in
                         Task { await model.answer(answer) }
                     }
-                case .done(let course, let score, let position, let bucket):
+                case .done(let course, let score, let position, let bucket, let companions):
                     RankResultView(
                         courseID: course.id,
                         courseName: course.name,
                         score: score,
                         position: position,
-                        bucket: bucket
+                        bucket: bucket,
+                        companions: companions
                     ) {
                         onComplete?()
                         dismiss()
@@ -89,7 +90,7 @@ final class LogFlowModel {
         case pickCompanions(Course)
         case compare(Course, candidate: RankedCourse, remaining: Int)
         case saving
-        case done(Course, score: Double, position: Int, bucket: Bucket)
+        case done(Course, score: Double, position: Int, bucket: Bucket, companions: [String])
         case failed(String)
 
         var isDone: Bool {
@@ -104,6 +105,7 @@ final class LogFlowModel {
     private var engine: RankingEngine?
     private var ranked: [RankedCourse] = []
     private var companions: [UUID] = []
+    private var companionNames: [String] = []
 
     func start(with course: Course) async {
         self.course = course
@@ -127,9 +129,10 @@ final class LogFlowModel {
     /// Who you played with, captured before the comparisons so the question is
     /// asked while the round is still the subject. The tags can only be saved
     /// after insert_ranking creates the activity, so they're held until then.
-    func setCompanions(_ companions: [UUID]) async {
+    func setCompanions(_ people: [ProfileSummary]) async {
         guard let course, let bucket else { return }
-        self.companions = companions
+        self.companions = people.map(\.id)
+        self.companionNames = people.map(\.username)
         engine = RankingEngine(bucketList: ranked.filter { $0.bucket == bucket })
         await advance(course: course)
     }
@@ -164,7 +167,8 @@ final class LogFlowModel {
                     bucket: bucket
                 )
                 await attachCompanions(courseID: course.id)
-                step = .done(course, score: score, position: position, bucket: bucket)
+                step = .done(course, score: score, position: position,
+                             bucket: bucket, companions: companionNames)
             } catch {
                 step = .failed(error.localizedDescription)
             }

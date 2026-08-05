@@ -5,12 +5,13 @@ import SwiftUI
 /// about. Solo is the one-tap path, so the common case costs nothing.
 struct CompanionPickerView: View {
     let courseName: String
-    let onDone: ([UUID]) -> Void
+    let onDone: ([ProfileSummary]) -> Void
 
     @Environment(SessionStore.self) private var session
     @State private var friends: [ProfileSummary] = []
     @State private var selected: Set<UUID> = []
     @State private var isLoading = true
+    @State private var loadFailed = false
 
     private var myID: UUID? {
         if case .signedIn(let profile) = session.state { return profile.id }
@@ -32,6 +33,8 @@ struct CompanionPickerView: View {
 
             if isLoading {
                 ProgressView().frame(maxHeight: .infinity)
+            } else if loadFailed, friends.isEmpty {
+                LoadFailedView { await load() }
             } else if friends.isEmpty {
                 ContentUnavailableView(
                     "No friends yet",
@@ -53,13 +56,21 @@ struct CompanionPickerView: View {
 
             VStack(spacing: 10) {
                 Button {
-                    onDone(Array(selected))
+                    onDone(friends.filter { selected.contains($0.id) })
                 } label: {
                     Text(selected.isEmpty
                          ? "I played solo"
                          : "^[\(selected.count) playing partner](inflect: true)")
                 }
                 .buttonStyle(.primary)
+
+                // "I played solo" was the only way forward, so anyone who
+                // played with a non-user — or who follows nobody yet — had to
+                // assert something false to continue.
+                Button("Skip") { onDone([]) }
+                    .font(.subheadline)
+                    .tint(.secondary)
+                    .frame(minHeight: 44)
             }
             .padding(.horizontal)
             .padding(.bottom, 8)
@@ -70,7 +81,12 @@ struct CompanionPickerView: View {
 
     private func load() async {
         guard let myID else { isLoading = false; return }
-        friends = (try? await SocialRepo.following(of: myID)) ?? []
+        do {
+            friends = try await SocialRepo.following(of: myID)
+            loadFailed = false
+        } catch {
+            loadFailed = true
+        }
         isLoading = false
     }
 

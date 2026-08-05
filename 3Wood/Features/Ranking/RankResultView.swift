@@ -6,6 +6,9 @@ struct RankResultView: View {
     let score: Double
     let position: Int
     let bucket: Bucket
+    /// Already tagged during the flow — the screen shows them rather than
+    /// asking the same question a second time.
+    var companions: [String] = []
     let onDone: () -> Void
 
     @State private var isWritingReview = false
@@ -16,8 +19,9 @@ struct RankResultView: View {
     @State private var tagged: [String] = []
 
     var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
+        ScrollView {
+          VStack(spacing: 24) {
+            Spacer(minLength: 24)
             Text(courseName)
                 .font(.title2.bold())
                 .multilineTextAlignment(.center)
@@ -59,18 +63,13 @@ struct RankResultView: View {
 
             // Strike while the round is fresh — reviews and photos mostly
             // happen here, not on a later visit to the course page.
-            HStack(spacing: 20) {
-                Button(hasReviewed ? "Review saved ✓" : "Write a review") {
-                    isWritingReview = true
-                }
-                .disabled(hasReviewed)
-
-                Button("Add photos") {
-                    isAddingPhotos = true
-                }
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 24) { reviewButton; photosButton }
+                VStack(spacing: 4) { reviewButton; photosButton }
             }
             .font(.subheadline.weight(.medium))
             .tint(Color.fairwayGreen)
+            .padding(.bottom, 8)
 
             Button {
                 onDone()
@@ -78,8 +77,10 @@ struct RankResultView: View {
                 Text("Done")
             }
             .buttonStyle(.primary)
+          }
+          .padding()
+          .frame(maxWidth: .infinity)
         }
-        .padding()
         .creamScreen()
         .sheet(isPresented: $isWritingReview) {
             WriteReviewSheet(courseID: courseID, existing: nil) {
@@ -110,8 +111,22 @@ struct RankResultView: View {
         // insert_ranking creates the activity; look it up so tagging has
         // something to attach to.
         .task {
+            tagged = companions
             activityID = (try? await ActivityRepo.myActivity(courseID: courseID))?.activityID
         }
+    }
+
+    private var reviewButton: some View {
+        Button(hasReviewed ? "Review saved ✓" : "Write a review") {
+            isWritingReview = true
+        }
+        .disabled(hasReviewed)
+        .frame(minHeight: 44)
+    }
+
+    private var photosButton: some View {
+        Button("Add photos") { isAddingPhotos = true }
+            .frame(minHeight: 44)
     }
 
     private var rule: some View {
