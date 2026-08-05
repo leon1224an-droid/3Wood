@@ -9,6 +9,7 @@ struct RankResultView: View {
     let onDone: () -> Void
 
     @State private var isWritingReview = false
+    @State private var isAddingPhotos = false
     @State private var hasReviewed = false
     @State private var isTagging = false
     @State private var activityID: Int?
@@ -56,13 +57,20 @@ struct RankResultView: View {
 
             Spacer()
 
-            // Strike while the round is fresh — reviews mostly happen here.
-            Button(hasReviewed ? "Review saved ✓" : "Write a review") {
-                isWritingReview = true
+            // Strike while the round is fresh — reviews and photos mostly
+            // happen here, not on a later visit to the course page.
+            HStack(spacing: 20) {
+                Button(hasReviewed ? "Review saved ✓" : "Write a review") {
+                    isWritingReview = true
+                }
+                .disabled(hasReviewed)
+
+                Button("Add photos") {
+                    isAddingPhotos = true
+                }
             }
             .font(.subheadline.weight(.medium))
             .tint(Color.fairwayGreen)
-            .disabled(hasReviewed)
 
             Button {
                 onDone()
@@ -76,6 +84,22 @@ struct RankResultView: View {
         .sheet(isPresented: $isWritingReview) {
             WriteReviewSheet(courseID: courseID, existing: nil) {
                 hasReviewed = true
+            }
+        }
+        .sheet(isPresented: $isAddingPhotos) {
+            NavigationStack {
+                ScrollView {
+                    CoursePhotosSection(courseID: courseID)
+                        .padding()
+                }
+                .creamScreen()
+                .navigationTitle("Photos")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") { isAddingPhotos = false }
+                    }
+                }
             }
         }
         .sheet(isPresented: $isTagging) {

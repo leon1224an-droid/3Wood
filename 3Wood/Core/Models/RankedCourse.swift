@@ -12,6 +12,11 @@ struct RankedCourse: Codable, Identifiable, Hashable, Sendable {
     /// When the course was logged. Optional: only my_ranked_courses returns
     /// it (user_ranked_courses and older backends omit it).
     var createdAt: Date?
+    /// When this course was last played, and how many rounds in total.
+    /// Optional for the same reason as createdAt — only my_ranked_courses
+    /// returns them.
+    var lastPlayedOn: String?
+    var visitCount: Int?
 
     var id: Int { courseID }
 
@@ -20,6 +25,8 @@ struct RankedCourse: Codable, Identifiable, Hashable, Sendable {
         case name, city, state, bucket, score
         case rankPosition = "rank_position"
         case createdAt = "created_at"
+        case lastPlayedOn = "last_played_on"
+        case visitCount = "visit_count"
     }
 
     var locationText: String {

@@ -123,6 +123,8 @@ struct CourseDetailView: View {
                 }
                 .buttonStyle(.primary)
 
+                CourseVisitsSection(courseID: course.id, isPlayed: myRanking != nil)
+
                 CoursePhotosSection(courseID: course.id)
 
                 reviewsSection

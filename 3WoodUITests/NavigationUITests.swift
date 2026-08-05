@@ -206,6 +206,13 @@ final class NavigationUITests: XCTestCase {
         snapshot("11-Log-BucketPicker")
         liked.tap()
 
+        // Companions step, between the bucket and the comparisons.
+        let solo = app.buttons["I played solo"]
+        XCTAssertTrue(solo.waitForExistence(timeout: timeout),
+                      "Companion picker did not appear before the comparisons")
+        snapshot("35-Log-Companions")
+        solo.tap()
+
         // Comparison loop: keep choosing the new course until the flow resolves.
         var guardCount = 0
         while app.staticTexts["Which did you like more?"].waitForExistence(timeout: 5), guardCount < 12 {
@@ -218,12 +225,44 @@ final class NavigationUITests: XCTestCase {
         // Result screen with the revealed score.
         let done = app.buttons["Done"]
         XCTAssertTrue(done.waitForExistence(timeout: timeout), "Ranking flow did not reach the result screen")
+        XCTAssertTrue(app.buttons["Add photos"].exists,
+                      "Result screen is missing the add-photos shortcut")
         snapshot("13-Log-Result")
         done.tap()
 
         // Back on the tab bar.
         XCTAssertTrue(app.tabBars.buttons["Lists"].waitForExistence(timeout: timeout),
                       "Did not return to the app after logging")
+    }
+
+    /// Rounds: a played course shows when it was played, and can take another
+    /// check-in without being re-ranked.
+    func testCourseCheckIn() {
+        ensureSignedInAsDemo()
+        switchToTab("Lists")
+
+        let firstRow = app.cells.element(boundBy: 0)
+        XCTAssertTrue(firstRow.waitForExistence(timeout: timeout), "Played list has no rows")
+        firstRow.tap()
+        XCTAssertTrue(app.staticTexts["Community rating"].waitForExistence(timeout: timeout),
+                      "Course detail did not open")
+
+        // Rounds section lives below the fold.
+        app.swipeUp()
+        let checkIn = app.buttons["Check in again"]
+        XCTAssertTrue(checkIn.waitForExistence(timeout: timeout),
+                      "Played course has no check-in affordance")
+        snapshot("36-Course-Rounds")
+        tap(checkIn, "Check in again")
+
+        XCTAssertTrue(app.navigationBars["Another round"].waitForExistence(timeout: timeout),
+                      "Check-in sheet did not open")
+        snapshot("37-CheckIn-Sheet")
+        tap(app.buttons["Save"], "Save round")
+
+        // Back on the course page with the round recorded.
+        XCTAssertTrue(app.buttons["Check in again"].waitForExistence(timeout: timeout),
+                      "Did not return to the course page after checking in")
     }
 
     /// The other half of the "+" menu: saving a course to Want to Play

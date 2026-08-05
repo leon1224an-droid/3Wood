@@ -164,6 +164,11 @@ struct ListsView: View {
                                 Text(course.locationText)
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
+                                if let played = course.lastPlayedOn {
+                                    Text(playedLine(for: course, on: played))
+                                        .font(.caption)
+                                        .foregroundStyle(.tertiary)
+                                }
                             }
                             Spacer()
                             ScoreBadge(score: course.score)
@@ -207,6 +212,13 @@ struct ListsView: View {
             .listStyle(.plain)
             .refreshable { await reload() }
         }
+    }
+
+    /// "Played 12 Mar 2026" — with a round count once there's more than one.
+    private func playedLine(for course: RankedCourse, on played: String) -> String {
+        let date = PlayDate.display(played)
+        guard let count = course.visitCount, count > 1 else { return "Played \(date)" }
+        return "Played \(date) · \(count) rounds"
     }
 
     private var sortedRanked: [RankedCourse] {

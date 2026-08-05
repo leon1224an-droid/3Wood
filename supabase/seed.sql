@@ -192,3 +192,16 @@ join (values
    'Told you it was worth the green fee.')
 ) as u(uid, course_name, body) on c.name = u.course_name
 where a.actor_id = '11111111-1111-1111-1111-111111111111' and a.kind = 'ranked';
+
+-- One round per seeded ranking. The 00220 backfill runs at migration time,
+-- before this file exists, so fixtures need their own copy — same reason the
+-- activities backfill is repeated here.
+insert into public.course_visits (user_id, course_id, played_on)
+select user_id, course_id, first_ranked_at::date
+from public.user_course_rankings
+on conflict do nothing;
+
+-- Ben has played Pebble twice, so the visit history has something to show.
+insert into public.course_visits (user_id, course_id, played_on)
+select '11111111-1111-1111-1111-111111111111', c.id, (now() - interval '9 months')::date
+from public.courses c where c.name = 'Pebble Beach Golf Links';

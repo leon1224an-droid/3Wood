@@ -23,7 +23,11 @@ struct LogCourseFlow: View {
                     ProgressView()
                 case .pickBucket(let course):
                     BucketPickerView(courseName: course.name) { bucket in
-                        Task { await model.choose(bucket: bucket) }
+                        model.choose(bucket: bucket)
+                    }
+                case .pickCompanions(let course):
+                    CompanionPickerView(courseName: course.name) { companions in
+                        Task { await model.setCompanions(companions) }
                     }
                 case .compare(let course, let candidate, let remaining):
                     ComparisonView(
@@ -82,6 +86,7 @@ final class LogFlowModel {
         case pickCourse
         case loading
         case pickBucket(Course)
+        case pickCompanions(Course)
         case compare(Course, candidate: RankedCourse, remaining: Int)
         case saving
         case done(Course, score: Double, position: Int, bucket: Bucket)
@@ -98,6 +103,7 @@ final class LogFlowModel {
     private var bucket: Bucket?
     private var engine: RankingEngine?
     private var ranked: [RankedCourse] = []
+    private var companions: [UUID] = []
 
     func start(with course: Course) async {
         self.course = course
@@ -112,9 +118,18 @@ final class LogFlowModel {
         }
     }
 
-    func choose(bucket: Bucket) async {
+    func choose(bucket: Bucket) {
         guard let course else { return }
         self.bucket = bucket
+        step = .pickCompanions(course)
+    }
+
+    /// Who you played with, captured before the comparisons so the question is
+    /// asked while the round is still the subject. The tags can only be saved
+    /// after insert_ranking creates the activity, so they're held until then.
+    func setCompanions(_ companions: [UUID]) async {
+        guard let course, let bucket else { return }
+        self.companions = companions
         engine = RankingEngine(bucketList: ranked.filter { $0.bucket == bucket })
         await advance(course: course)
     }
@@ -123,6 +138,15 @@ final class LogFlowModel {
         guard let course else { return }
         engine?.answer(answer)
         await advance(course: course)
+    }
+
+    /// insert_ranking creates the activity, so tagging can only happen after
+    /// the save. Failing to tag must not fail the round.
+    private func attachCompanions(courseID: Int) async {
+        guard !companions.isEmpty else { return }
+        if let activity = try? await ActivityRepo.myActivity(courseID: courseID) {
+            try? await ActivityRepo.setTags(activityID: activity.activityID, userIDs: companions)
+        }
     }
 
     private func advance(course: Course) async {
@@ -139,6 +163,7 @@ final class LogFlowModel {
                     bucketCount: engine.bucketList.count + 1,
                     bucket: bucket
                 )
+                await attachCompanions(courseID: course.id)
                 step = .done(course, score: score, position: position, bucket: bucket)
             } catch {
                 step = .failed(error.localizedDescription)
