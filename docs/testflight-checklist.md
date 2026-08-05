@@ -25,13 +25,15 @@ bottom on upload day. Prereq: Apple Developer enrollment approved.
 ## Before submitting for App Review
 
 - [ ] Paste listing copy from `docs/appstore-listing.md` (name/subtitle/promo/description/keywords).
-- [ ] Upload screenshots from `docs/appstore/screenshots/` (6.9" set).
+- [ ] Upload screenshots (6.9" set). **The set in `docs/appstore/screenshots/` is from 2026-07-26 and is stale** — it predates the Explore tab merge (5 tabs, not 4), reactions, alerts, photos and streaks. Re-capture before submitting.
 - [ ] Support URL: `https://leon1224an-droid.github.io/3Wood/support.html`
       Marketing URL: `https://leon1224an-droid.github.io/3Wood/`
       Privacy Policy URL: `https://leon1224an-droid.github.io/3Wood/privacy.html`
 - [ ] App Privacy questionnaire: answers in `docs/appstore-listing.md`.
-- [ ] Age rating questionnaire: all "None" → 4+ (user-generated content questions: has UGC, has moderation/report/block, has contact info collection = phone optional).
-- [ ] Review notes: demo account `appreview@example.com` / `3WoodReview2026`; mention report/block moderation and that Contacts is optional.
+- [ ] Age rating questionnaire. UGC now includes user-uploaded PHOTOS as well as reviews and comments — answer the user-generated-content questions accordingly (has UGC, has moderation/report/block, has blocking). Expect a rating above 4+; Apple raises it for apps with unmoderated-at-scale UGC.
+- [ ] App Privacy (nutrition labels) must include **Photos or Videos** — added to PrivacyInfo.xcprivacy; the ASC questionnaire is separate and must match.
+- [ ] Review notes: demo account `3woodapp+review@gmail.com` (@demo_golfer) — password is in App Store Connect, NOT in this repo (it's public). **Verify it signs in before every submission**: reviewers test account deletion, which is what killed the previous demo account.
+- [ ] Mention report/block moderation covering reviews, comments AND photos; note Contacts and Location are both optional.
 - [ ] **(user)** Upgrade Supabase to Pro (or verify free-tier project is un-paused and warm) before the review window.
 - [ ] Submit. Typical first-review turnaround: 24–48h.
 
