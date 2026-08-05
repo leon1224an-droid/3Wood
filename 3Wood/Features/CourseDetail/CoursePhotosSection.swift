@@ -21,7 +21,7 @@ struct CoursePhotosSection: View {
                 Text(photos.isEmpty ? "Photos" : "^[\(photos.count) photo](inflect: true)")
                     .font(.headline)
                 Spacer()
-                PhotosPicker(selection: $pickerItem, matching: .images, photoLibrary: .shared()) {
+                PhotosPicker(selection: $pickerItem, matching: .images) {
                     if isUploading {
                         ProgressView()
                     } else {

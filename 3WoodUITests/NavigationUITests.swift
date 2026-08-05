@@ -200,18 +200,18 @@ final class NavigationUITests: XCTestCase {
         snapshot("10-Log-Picker")
         target.tap()
 
-        // Bucket picker.
+        // Companions first — a fact about the round, before the judgement.
+        let solo = app.buttons["I played solo"]
+        XCTAssertTrue(solo.waitForExistence(timeout: timeout),
+                      "Companion picker did not appear after choosing a course")
+        snapshot("35-Log-Companions")
+        solo.tap()
+
+        // Then the bucket.
         let liked = app.buttons["Liked it"]
         XCTAssertTrue(liked.waitForExistence(timeout: timeout), "Bucket picker did not appear")
         snapshot("11-Log-BucketPicker")
         liked.tap()
-
-        // Companions step, between the bucket and the comparisons.
-        let solo = app.buttons["I played solo"]
-        XCTAssertTrue(solo.waitForExistence(timeout: timeout),
-                      "Companion picker did not appear before the comparisons")
-        snapshot("35-Log-Companions")
-        solo.tap()
 
         // Comparison loop: keep choosing the new course until the flow resolves.
         var guardCount = 0
@@ -228,11 +228,52 @@ final class NavigationUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Add photos"].exists,
                       "Result screen is missing the add-photos shortcut")
         snapshot("13-Log-Result")
+
+        // Regression: the result screen used to stack three .sheet modifiers,
+        // and Add photos did nothing on device.
+        tap(app.buttons["Add photos"], "Add photos")
+        XCTAssertTrue(app.navigationBars["Photos"].waitForExistence(timeout: timeout),
+                      "Add photos did not open the photo sheet")
+        snapshot("39-Result-Photos")
+        // Scope to the sheet's own bar: the result screen behind it also has
+        // a "Done", and firstMatch picks that one.
+        tap(app.navigationBars["Photos"].buttons["Done"], "Close photo sheet")
+
+        // And the review sheet, which shared the same defect.
+        tap(app.buttons["Write a review"], "Write a review")
+        XCTAssertTrue(app.navigationBars["Review"].waitForExistence(timeout: 6)
+                      || app.textViews.firstMatch.waitForExistence(timeout: 6),
+                      "Write a review did not open its sheet")
+        snapshot("40-Result-Review")
+        tap(app.buttons["Cancel"].firstMatch, "Close review sheet")
+        XCTAssertTrue(app.buttons["Add photos"].waitForExistence(timeout: timeout),
+                      "Did not return to the result screen")
         done.tap()
 
         // Back on the tab bar.
         XCTAssertTrue(app.tabBars.buttons["Lists"].waitForExistence(timeout: timeout),
                       "Did not return to the app after logging")
+    }
+
+    /// Two `.sheet` modifiers on one view is a known SwiftUI hazard — only one
+    /// may be honoured. Profile stacks them for phone and username, so both
+    /// paths are exercised here.
+    func testProfileSheetsBothOpen() {
+        ensureSignedInAsDemo()
+        switchToTab("Profile")
+
+        snapshot("38-Profile-BeforeTap")
+        // The row is a plain-styled Button inside a List; its label is the
+        // reliable hit target.
+        tap(app.staticTexts["Change username"], "Change username row")
+        XCTAssertTrue(app.navigationBars["Change username"].waitForExistence(timeout: timeout),
+                      "Username sheet did not open")
+        tap(app.buttons["Cancel"], "Cancel username sheet")
+
+        tap(app.staticTexts["Phone number"], "Phone number row")
+        XCTAssertTrue(app.navigationBars["Link phone number"].waitForExistence(timeout: timeout),
+                      "Phone sheet did not open — stacked .sheet modifiers")
+        tap(app.buttons["Cancel"], "Cancel phone sheet")
     }
 
     /// Rounds: a played course shows when it was played, and can take another

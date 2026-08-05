@@ -21,13 +21,13 @@ struct LogCourseFlow: View {
                     }
                 case .loading, .saving:
                     ProgressView()
-                case .pickBucket(let course):
-                    BucketPickerView(courseName: course.name) { bucket in
-                        model.choose(bucket: bucket)
-                    }
                 case .pickCompanions(let course):
                     CompanionPickerView(courseName: course.name) { companions in
-                        Task { await model.setCompanions(companions) }
+                        model.setCompanions(companions)
+                    }
+                case .pickBucket(let course):
+                    BucketPickerView(courseName: course.name) { bucket in
+                        Task { await model.choose(bucket: bucket) }
                     }
                 case .compare(let course, let candidate, let remaining):
                     ComparisonView(
@@ -114,25 +114,27 @@ final class LogFlowModel {
             // Exclude the course itself so re-logging never compares against it.
             ranked = try await RankingRepo.myRankedCourses()
                 .filter { $0.courseID != course.id }
-            step = .pickBucket(course)
+            // Who you played with comes first: it's a fact about the round,
+            // asked before the judgement calls.
+            step = .pickCompanions(course)
         } catch {
             step = .failed(error.localizedDescription)
         }
     }
 
-    func choose(bucket: Bucket) {
+    /// Who you played with. Recorded before the rating so the flow moves from
+    /// facts to judgement. The tags can only be saved once insert_ranking has
+    /// created the activity, so they're held until after the save.
+    func setCompanions(_ people: [ProfileSummary]) {
         guard let course else { return }
-        self.bucket = bucket
-        step = .pickCompanions(course)
+        companions = people.map(\.id)
+        companionNames = people.map(\.username)
+        step = .pickBucket(course)
     }
 
-    /// Who you played with, captured before the comparisons so the question is
-    /// asked while the round is still the subject. The tags can only be saved
-    /// after insert_ranking creates the activity, so they're held until then.
-    func setCompanions(_ people: [ProfileSummary]) async {
-        guard let course, let bucket else { return }
-        self.companions = people.map(\.id)
-        self.companionNames = people.map(\.username)
+    func choose(bucket: Bucket) async {
+        guard let course else { return }
+        self.bucket = bucket
         engine = RankingEngine(bucketList: ranked.filter { $0.bucket == bucket })
         await advance(course: course)
     }

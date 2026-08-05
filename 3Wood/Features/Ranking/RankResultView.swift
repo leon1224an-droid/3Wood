@@ -11,10 +11,17 @@ struct RankResultView: View {
     var companions: [String] = []
     let onDone: () -> Void
 
-    @State private var isWritingReview = false
-    @State private var isAddingPhotos = false
+    /// One sheet, selected by case. Three separate `.sheet(isPresented:)`
+    /// modifiers on the same view do NOT all work — SwiftUI honours only one,
+    /// so "Add photos" and "Write a review" silently did nothing while the
+    /// last-attached tagging sheet was the only one that opened.
+    private enum Sheet: String, Identifiable {
+        case review, photos, tagging
+        var id: String { rawValue }
+    }
+
+    @State private var sheet: Sheet?
     @State private var hasReviewed = false
-    @State private var isTagging = false
     @State private var activityID: Int?
     @State private var tagged: [String] = []
 
@@ -44,13 +51,13 @@ struct RankResultView: View {
 
             // Who you played with, while the round is still fresh in mind.
             if tagged.isEmpty {
-                Button("Add playing partners") { isTagging = true }
+                Button("Add playing partners") { sheet = .tagging }
                     .font(.subheadline.weight(.medium))
                     .tint(Color.fairwayGreen)
                     .disabled(activityID == nil)
             } else {
                 Button {
-                    isTagging = true
+                    sheet = .tagging
                 } label: {
                     Text("with \(tagged.map { "@\($0)" }.formatted(.list(type: .and)))")
                         .font(.subheadline)
@@ -82,30 +89,31 @@ struct RankResultView: View {
           .frame(maxWidth: .infinity)
         }
         .creamScreen()
-        .sheet(isPresented: $isWritingReview) {
-            WriteReviewSheet(courseID: courseID, existing: nil) {
-                hasReviewed = true
-            }
-        }
-        .sheet(isPresented: $isAddingPhotos) {
-            NavigationStack {
-                ScrollView {
-                    CoursePhotosSection(courseID: courseID)
-                        .padding()
+        .sheet(item: $sheet) { which in
+            switch which {
+            case .review:
+                WriteReviewSheet(courseID: courseID, existing: nil) {
+                    hasReviewed = true
                 }
-                .creamScreen()
-                .navigationTitle("Photos")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Done") { isAddingPhotos = false }
+            case .photos:
+                NavigationStack {
+                    ScrollView {
+                        CoursePhotosSection(courseID: courseID)
+                            .padding()
+                    }
+                    .creamScreen()
+                    .navigationTitle("Photos")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { sheet = nil }
+                        }
                     }
                 }
-            }
-        }
-        .sheet(isPresented: $isTagging) {
-            if let activityID {
-                TagFriendsSheet(activityID: activityID, alreadyTagged: tagged) { tagged = $0 }
+            case .tagging:
+                if let activityID {
+                    TagFriendsSheet(activityID: activityID, alreadyTagged: tagged) { tagged = $0 }
+                }
             }
         }
         // insert_ranking creates the activity; look it up so tagging has
@@ -118,14 +126,14 @@ struct RankResultView: View {
 
     private var reviewButton: some View {
         Button(hasReviewed ? "Review saved ✓" : "Write a review") {
-            isWritingReview = true
+            sheet = .review
         }
         .disabled(hasReviewed)
         .frame(minHeight: 44)
     }
 
     private var photosButton: some View {
-        Button("Add photos") { isAddingPhotos = true }
+        Button("Add photos") { sheet = .photos }
             .frame(minHeight: 44)
     }
 
