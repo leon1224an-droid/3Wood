@@ -108,6 +108,11 @@ begin
   if auth.uid() is null then
     raise exception 'not authenticated';
   end if;
+  -- The picker caps at today, but the RPC is the real boundary: a future round
+  -- would sort to the top of the history and show as "last played".
+  if p_played_on is not null and p_played_on > current_date then
+    raise exception 'cannot log a round in the future';
+  end if;
   insert into public.course_visits (user_id, course_id, played_on)
   values (auth.uid(), p_course_id, coalesce(p_played_on, current_date))
   returning id into v_id;
