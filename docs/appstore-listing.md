@@ -59,7 +59,37 @@ golf,course,rankings,tracker,social,friends,rounds,tee,scorecard,beli,rate,leade
 - Primary: Sports
 - Secondary: Social Networking
 
-## App Privacy questionnaire notes
+## App Privacy questionnaire — answer key
+For each row: "Yes, we collect this data" → Linked to the user → purpose
+**App Functionality** → NOT used for tracking.
+
+| Category | Item |
+|---|---|
+| Contact Info | Email Address |
+| Contact Info | Phone Number (optional, friend matching) |
+| Contact Info | Name |
+| User Content | **Photos or Videos** (course photos) |
+| User Content | Other User Content (reviews, comments, rankings) |
+| Identifiers | User ID |
+
+Answer **No** to everything else. The two that look wrong but aren't:
+- **Contacts → No.** Names never leave the device; only phone numbers are sent
+  for matching, and they are not stored.
+- **Location → No.** Used on-device to centre the map; never sent to the backend.
+
+No tracking, no ads, no data sold, no data broker.
+
+## Age rating questionnaire — answer key
+Everything **None** except:
+- **User Generated Content → Yes** (photos, reviews, comments).
+- When asked about moderation: yes — report and block on all three, plus
+  server-side filtering of blocked users' content.
+- Unrestricted Web Access → No.
+
+Expect **12+**, not 4+. Apple raises the rating for any UGC app regardless of
+moderation quality. Listing copy must not claim it suits all ages.
+
+## Detail behind the answers
 - Contact Info → Email Address: collected, linked to identity (account).
 - Contact Info → Phone Number: optional, linked, used for app functionality
   (friend matching). Numbers from the user's address book are transmitted for
@@ -69,10 +99,26 @@ golf,course,rankings,tracker,social,friends,rounds,tee,scorecard,beli,rate,leade
 - Identifiers: User ID (linked).
 - No tracking, no ads, no data sold.
 
-## Screenshots plan (6.9" required set)
-Use the marketing set in docs/img/ as the storyboard: score reveal (hero),
-feed, course detail, friend profile, ranked list, map. Re-capture on
-"iPhone 17 Pro Max" simulator for final 1320×2868 assets before submission.
+## Screenshots (6.9" required set) — CURRENT as of 2026-08-05
+`docs/appstore/screenshots/`, 1320×2868, captured on iPhone 17 Pro Max from the
+four-tab build: 1-feed (reactions visible), 2-score-reveal, 3-course-detail,
+4-explore-map (Pebble Beach with score pins), 5-my-courses, 6-comments.
+
+Recipe, if they need recapturing after a UI change:
+```
+UDID=$(xcrun simctl list devices available | grep "iPhone 17 Pro Max" | head -1 | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')
+xcrun simctl boot "$UDID"
+xcrun simctl status_bar "$UDID" override --time "9:41" --cellularMode active \
+  --cellularBars 4 --wifiMode active --wifiBars 3 --batteryState charged --batteryLevel 100
+xcrun simctl privacy "$UDID" grant contacts com.leonan.threewood
+xcrun simctl privacy "$UDID" grant location-always com.leonan.threewood
+xcrun simctl location "$UDID" set 36.5725,-121.9486
+xcodebuild -project 3Wood.xcodeproj -scheme 3Wood -destination "id=$UDID" \
+  -resultBundlePath /tmp/store.xcresult test
+xcrun xcresulttool export attachments --path /tmp/store.xcresult --output-path /tmp/shots
+```
+Only ONE simulator may be booted during the run — a second booted device makes
+most of the suite fail for no code reason.
 
 ## Review notes (for App Review)
 - Demo account (hosted): `3woodapp+review@gmail.com`, username **@demo_golfer**.

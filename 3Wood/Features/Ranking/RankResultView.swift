@@ -26,8 +26,12 @@ struct RankResultView: View {
     @State private var tagged: [String] = []
 
     var body: some View {
-        ScrollView {
-          VStack(spacing: 24) {
+        // minHeight tied to the viewport so the Spacers can centre the reveal
+        // when it fits — wrapping in a plain ScrollView top-aligned it and left
+        // the bottom third empty — while still scrolling at large text sizes.
+        GeometryReader { proxy in
+          ScrollView {
+            VStack(spacing: 24) {
             Spacer(minLength: 24)
             Text(courseName)
                 .font(.title2.bold())
@@ -84,9 +88,10 @@ struct RankResultView: View {
                 Text("Done")
             }
             .buttonStyle(.primary)
+            }
+            .padding()
+            .frame(maxWidth: .infinity, minHeight: proxy.size.height)
           }
-          .padding()
-          .frame(maxWidth: .infinity)
         }
         .creamScreen()
         .sheet(item: $sheet) { which in
