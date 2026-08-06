@@ -18,26 +18,36 @@ Alternates considered: "Share your golf adventures" (26), "Rank courses. Rally f
 
 ## Promotional text (170 chars max, editable without review)
 ```
-Rank every course you play, follow your friends, and settle the "best track in town" debate with receipts. Your golf crew's new clubhouse is open.
+Rank every course you play, tag your playing partners, react to your friends' rounds, and settle the "best track in town" debate with receipts.
 ```
+(143 chars)
 
-## Description (4000 chars max)
+## Description (4000 chars max) — rewritten 2026-08-05
+The previous version described a July build: it never mentioned photos,
+reactions, comments, tagging playing partners, alerts or round history, which
+are now most of what makes the app social.
 ```
 Golf is meant to be shared — and 3Wood is where your rounds live.
 
 3Wood is a social course-ranking app for golfers. Instead of shouting star ratings into the void, you build a personal 0–10 ranking of every course you've played, follow your friends, and see the game through your crew's eyes.
 
 RANK, DON'T RATE
-Logging a course takes seconds: say whether you liked it, thought it was fine, or didn't love it, then answer a few quick head-to-head matchups against courses you've already played. 3Wood turns your choices into a personal 0–10 score for every course — no agonizing over whether something is "4 stars."
+Logging a course takes seconds. Say whether you liked it, thought it was fine, or didn't love it, then answer a few quick head-to-head matchups against courses you've already played. 3Wood turns those choices into a personal 0–10 score for every course — no agonizing over whether something is "4 stars."
 
-A FEED OF REAL ROUNDS
-Your home feed shows the courses your friends play, save, and love. Tap any friend to see their full ranked list, their followers, and how their scores stack up against yours.
+PLAYED IT WITH THE CREW
+Tag the friends you played with as you log the round. Your list stays yours, but the round is shared.
+
+A FEED THAT TALKS BACK
+Your home feed shows the courses your friends play, save, and love — and you can actually respond. React with a golf-native set (a flag for a great track, an eagle for the shot of the day, a skull for a blow-up round), leave a comment, and @mention whoever needs to see it. Alerts keep you on top of new followers, reactions, and replies.
 
 EVERY COURSE, EVERYONE'S TAKE
-Open any of 16,000+ US courses to see the community rating, your friends' individual scores side by side, and written reviews from people you actually know.
+Open any of 16,000+ US courses to see the community rating, your friends' individual scores side by side, written reviews from people you actually know, and photos from the golfers who've played it.
+
+KEEP THE RECEIPTS
+Every round is dated. Check in again each time you play a course, and watch your week-by-week streak build as you keep adding new tracks.
 
 FIND YOUR FOURSOME
-Match your contacts to find friends already on 3Wood, invite the rest with your personal link, and race the leaderboard to see who's played the most.
+Match your contacts to find friends already on 3Wood, invite the rest with your personal link, and climb the weekly and all-time leaderboards.
 
 PLAN THE NEXT ONE
 Search by name or city, explore the map, and keep a Want-to-Play list so the next buddies trip plans itself.
@@ -48,12 +58,14 @@ Course data © OpenGolfAPI contributors (ODbL).
 Privacy policy: https://leon1224an-droid.github.io/3Wood/privacy.html
 Terms: https://leon1224an-droid.github.io/3Wood/terms.html
 ```
+(2061 chars)
 
 ## Keywords (100 chars max, comma-separated, no spaces)
 ```
-golf,course,rankings,tracker,social,friends,rounds,tee,scorecard,beli,rate,leaderboard,map
+golf,course,rankings,tracker,social,friends,rounds,tee,scorecard,rate,leaderboard,map,photos
 ```
-(93 chars)
+(92 chars. "beli" was removed — it is a competitor's app name, and
+third-party trademarks in metadata are a well-known rejection reason.)
 
 ## Category
 - Primary: Sports
