@@ -25,7 +25,7 @@ and it's gone. Hence two phases.
 | # | Item | Status |
 |---|------|--------|
 | 1 | **Supabase Pro upgrade ($25/mo)** | ⛔ OPEN — free tier auto-pauses after ~1wk idle. A post that gets *any* traction against a paused backend kills the app for every tester at once. This is a prerequisite for promoting, not a nice-to-have. |
-| 2 | **Migration 00220 pushed to hosted** | ⛔ OPEN — build 5 calls `course_visits`/`log_visit`. Without it strangers land on a load-failed screen. |
+| 2 | **Migration 00220 pushed to hosted** | ✅ DONE 2026-08-05 — 00200/00210/00220 all live; `course_visits`/`log_visit` verified 200 against hosted. |
 | 3 | **App Review demo account** | ⛔ Re-verify it signs in before submission (see `appstore-listing.md`). Blocks Phase 2 entirely. |
 | 4 | **GitHub Pages live** | ✅ VERIFIED 2026-08-05 — `/`, `/privacy.html`, `/terms.html`, `/support.html` all return 200. |
 | 5 | **Custom domain** | ⚠️ Undecided. `leon1224an-droid.github.io/3Wood/` in a Reddit post reads as unfinished and is likelier to trip link filters. If you're promoting, this stops being deferrable — a $12 domain (e.g. `3wood.app`) pointed at Pages is a half-hour job and materially raises how the link reads. |
@@ -251,7 +251,7 @@ reports queue in the Supabase dashboard daily during any active promotion push.
 ## Ordered next actions
 
 1. Upgrade Supabase to Pro. Nothing else in this plan is safe without it.
-2. Push migration 00220 to hosted, then distribute build 5 to the Friends group.
+2. ~~Push migration 00220 to hosted~~ (done) — distribute build 6 to the Friends group.
 3. Decide the domain. Buy it, point it at Pages, ship the URL change in the next build.
 4. Create/verify the Reddit account; start commenting in r/golf as a golfer. No links.
 5. Post draft A to r/TestFlight this week. Learn what people ask.

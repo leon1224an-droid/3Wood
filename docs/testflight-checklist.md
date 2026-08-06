@@ -25,7 +25,7 @@ bottom on upload day. Prereq: Apple Developer enrollment approved.
 ## Before submitting for App Review
 
 - [ ] Paste listing copy from `docs/appstore-listing.md` (name/subtitle/promo/description/keywords).
-- [ ] Upload screenshots (6.9" set). **The set in `docs/appstore/screenshots/` is from 2026-07-26 and is stale** — it predates the Explore tab merge (5 tabs, not 4), reactions, alerts, photos and streaks. Re-capture before submitting.
+- [ ] Upload screenshots (6.9" set). The set in `docs/appstore/screenshots/` was **re-captured 2026-08-05** (commit 97e5d36) against the current build — all six verified 1320×2868, the correct 6.9" geometry. No re-capture needed.
 - [ ] Support URL: `https://leon1224an-droid.github.io/3Wood/support.html`
       Marketing URL: `https://leon1224an-droid.github.io/3Wood/`
       Privacy Policy URL: `https://leon1224an-droid.github.io/3Wood/privacy.html`
