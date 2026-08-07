@@ -135,7 +135,9 @@ most of the suite fail for no code reason.
 ## Review notes (for App Review)
 - Demo account (hosted): `3woodapp+review@gmail.com`, username **@demo_golfer**.
   Contents: Pebble Beach 9.2, Spyglass Hill 7.5, Torrey Pines North 5.0,
-  Bethpage bookmarked, one review on Pebble.
+  **Bethpage Black** on the Want-to-Play list (confirmed 2026-08-07 — hosted
+  carries the Black course; pick that one, not Red/Blue/Green/Yellow), one
+  review on Pebble.
 
   **Rebuild it with `python3 scripts/seed_review_account.py`** (prompts for the
   password; nothing secret is stored). Expect to need this roughly every review
