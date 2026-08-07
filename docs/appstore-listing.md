@@ -134,8 +134,20 @@ most of the suite fail for no code reason.
 
 ## Review notes (for App Review)
 - Demo account (hosted): `3woodapp+review@gmail.com`, username **@demo_golfer**.
-  Seeded 2026-08-02 and verified signing in: Pebble Beach 9.2, Spyglass Hill
-  7.5, Torrey Pines North 5.0, Bethpage bookmarked, one review on Pebble.
+  Contents: Pebble Beach 9.2, Spyglass Hill 7.5, Torrey Pines North 5.0,
+  Bethpage bookmarked, one review on Pebble.
+
+  **Rebuild it with `python3 scripts/seed_review_account.py`** (prompts for the
+  password; nothing secret is stored). Expect to need this roughly every review
+  cycle — see the deletion note below. If the auth user itself is gone, sign up
+  through the app first, then run the script.
+
+  Those three scores are **derived, not stored** — `score = hi - width *
+  (position - 0.5) / bucket_count`. They come out at 9.2/7.5/5.0 only because
+  the account holds exactly two `liked` courses and one `fine`. Ranking a
+  fourth course changes `bucket_count` and moves every score, so if you add
+  one, update these numbers. The script asserts them and refuses to finish
+  quietly if they drift.
   **The password is not recorded here — this repo is public.** It goes in App
   Store Connect, in two separate places depending on the review:
   - **TestFlight** → Test Information → *Beta App Review Information* →
