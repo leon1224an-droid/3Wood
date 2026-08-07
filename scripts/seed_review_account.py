@@ -10,9 +10,14 @@ Usage:
     python3 scripts/seed_review_account.py
 
 It prompts for the password (never echoed, never stored, never an argument, so
-it stays out of shell history). The account must already exist — sign up through
-the app first if a reviewer deleted it. This repo is public: do not add the
-password here, and do not pass it on the command line.
+it stays out of shell history). If the account is gone it offers to create it.
+This repo is public: do not add the password here, and do not pass it on the
+command line.
+
+Run this rather than rebuilding through the app. A simulator build launched from
+Xcode is a DEBUG build, and Supa.swift points DEBUG at http://127.0.0.1:54321 —
+so signing up there creates the account on your laptop, not on the backend Apple
+reviews. That has already happened once. This script always talks to hosted.
 
 Idempotent: re-running converges on the same state. insert_ranking removes and
 reinserts, upsert_review upserts, and the want_to_play insert ignores duplicates.
@@ -75,13 +80,51 @@ def request(method, path, token=None, body=None, prefer=None):
         sys.exit(f"\n{method} {path} failed: HTTP {e.code}\n{detail}")
 
 
-def sign_in(password):
-    out = request(
-        "POST",
-        "/auth/v1/token?grant_type=password",
-        body={"email": EMAIL, "password": password},
+def try_sign_in(password):
+    """Returns (token, user_id), or None if the credentials are rejected."""
+    req = urllib.request.Request(
+        f"{SUPABASE_URL}/auth/v1/token?grant_type=password",
+        data=json.dumps({"email": EMAIL, "password": password}).encode(),
+        method="POST",
     )
+    req.add_header("apikey", ANON_KEY)
+    req.add_header("Content-Type", "application/json")
+    try:
+        with urllib.request.urlopen(req) as resp:
+            out = json.loads(resp.read())
+            return out["access_token"], out["user"]["id"]
+    except urllib.error.HTTPError as e:
+        if e.code in (400, 401):
+            return None            # no such user, or wrong password
+        sys.exit(f"\nSign-in failed: HTTP {e.code}\n{e.read().decode(errors='replace')}")
+
+
+def sign_up(password):
+    """Create the account. Hosted has email confirmations off, so this returns a
+    session immediately; if that ever changes, say so rather than failing oddly."""
+    out = request("POST", "/auth/v1/signup",
+                  body={"email": EMAIL, "password": password})
+    if not out.get("access_token"):
+        sys.exit(
+            "Signed up, but no session came back — email confirmations are"
+            " probably ON for this project.\nConfirm the address, then re-run."
+        )
     return out["access_token"], out["user"]["id"]
+
+
+def authenticate(password):
+    creds = try_sign_in(password)
+    if creds:
+        print("Signed in.\n")
+        return creds
+
+    print(f"\n{EMAIL} does not exist on this backend (or the password differs).")
+    print("Reviewers delete this account as part of Guideline 5.1.1(v) testing.")
+    if input("Create it now with the password you just entered? [y/N] ").strip().lower() != "y":
+        sys.exit("Aborted — nothing written.")
+    creds = sign_up(password)
+    print("Account created.\n")
+    return creds
 
 
 def resolve(label, query, token):
@@ -114,8 +157,7 @@ def main():
     if not password:
         sys.exit("No password entered.")
 
-    token, user_id = sign_in(password)
-    print("Signed in.\n")
+    token, user_id = authenticate(password)
 
     # --- username -------------------------------------------------------
     rows = request("GET", f"/rest/v1/profiles?id=eq.{user_id}&select=username",
