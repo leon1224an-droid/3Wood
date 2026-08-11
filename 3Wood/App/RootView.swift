@@ -6,10 +6,13 @@ import Supabase
 struct RootView: View {
     @Environment(SessionStore.self) private var session
     @State private var invitedPerson: ProfileSummary?
+    @State private var resetLinkError: String?
 
     var body: some View {
         @Bindable var session = session
-        Group {
+        // Keep a stable container around the auth gate. A Group is transparent,
+        // so changing branches can cancel and restart the auth-listener task.
+        ZStack {
             switch session.state {
             case .loading:
                 ProgressView()
@@ -33,9 +36,6 @@ struct RootView: View {
         .task {
             await session.start()
         }
-        // threewood://invite?ref=<username> opens the inviter's profile;
-        // anything else (threewood://reset-password#...) hands its tokens to
-        // Supabase, which emits .passwordRecovery.
         .onOpenURL { url in
             if url.scheme == "threewood", url.host == "invite" {
                 let ref = URLComponents(url: url, resolvingAgainstBaseURL: false)?
@@ -43,8 +43,8 @@ struct RootView: View {
                 if let ref {
                     Task { await openInvite(ref: ref) }
                 }
-            } else {
-                Task { try? await supa.auth.session(from: url) }
+            } else if url.scheme == "threewood", url.host == "reset-password" {
+                Task { await openPasswordReset(url) }
             }
         }
         .sheet(isPresented: $session.needsPasswordReset) {
@@ -52,6 +52,26 @@ struct RootView: View {
         }
         .sheet(item: $invitedPerson) { person in
             InviteProfileSheet(person: person)
+        }
+        .alert("Password reset link", isPresented: .init(
+            get: { resetLinkError != nil },
+            set: { if !$0 { resetLinkError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(resetLinkError ?? "")
+        }
+    }
+
+    private func openPasswordReset(_ url: URL) async {
+        do {
+            // session(from:) emits .signedIn before .passwordRecovery. Set the
+            // recovery UI explicitly as well, so a cold-launch listener cannot
+            // miss the second event while the auth gate changes screens.
+            try await supa.auth.session(from: url)
+            session.beginPasswordReset()
+        } catch {
+            resetLinkError = "This reset link is invalid or expired. Request a new one and try again."
         }
     }
 

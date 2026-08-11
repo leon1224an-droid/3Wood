@@ -50,6 +50,13 @@ final class SessionStore {
         state = .signedIn(profile)
     }
 
+    /// Called after a recovery URL has established its session. This explicit
+    /// signal also covers cold launches where the auth event arrives while the
+    /// root auth gate is changing screens.
+    func beginPasswordReset() {
+        needsPasswordReset = true
+    }
+
     /// Retry after a failed profile resolution (e.g. connectivity returned).
     func retryResolve() async {
         guard case .failed(let userID) = state else { return }
