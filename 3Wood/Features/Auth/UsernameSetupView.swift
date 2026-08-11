@@ -54,6 +54,19 @@ struct UsernameSetupView: View {
             }
             .creamScreen()
             .navigationTitle("Welcome!")
+            // Without this there is no way off this screen. It is the root of
+            // the auth gate whenever a session has no profiles row, so it has
+            // no back button — and a recovery deep link can land you here on an
+            // account you never finished setting up, with picking a username
+            // the only way forward. Signing out has to be reachable.
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Sign out") {
+                        Task { await session.signOut() }
+                    }
+                    .tint(Color.fairwayGreen)
+                }
+            }
         }
     }
 

@@ -23,6 +23,20 @@ final class LocationProvider: NSObject, CLLocationManagerDelegate {
     /// this morning would drop the user somewhere they no longer are.
     private static let maxCacheAge: TimeInterval = 60
 
+    /// requestLocation() makes exactly one attempt and then reports failure. On
+    /// a real device that first attempt often comes back kCLErrorLocationUnknown
+    /// — indoors, or simply before the GPS has settled — and the caller was
+    /// given nil, so the map silently stayed over the continental US with
+    /// nothing to retry. A simulator always answers instantly, which is why
+    /// this never showed up in testing.
+    private static let maxRetries = 2
+    private var retriesLeft = 0
+
+    /// Nothing guarantees CoreLocation ever calls back. Without this the
+    /// awaiting task hangs forever rather than falling back to the default map.
+    private static let timeout: Duration = .seconds(15)
+    private var watchdog: Task<Void, Never>?
+
     /// Requests permission if needed, then resolves one location (or nil on
     /// denial/failure — callers fall back to the country-wide default).
     func currentLocation() async -> CLLocation? {
@@ -32,6 +46,7 @@ final class LocationProvider: NSObject, CLLocationManagerDelegate {
         case .notDetermined:
             return await withCheckedContinuation { continuation in
                 continuations.append(continuation)
+                startWatchdog()
                 manager.requestWhenInUseAuthorization()
             }
         default:
@@ -41,8 +56,26 @@ final class LocationProvider: NSObject, CLLocationManagerDelegate {
             }
             return await withCheckedContinuation { continuation in
                 continuations.append(continuation)
-                manager.requestLocation()
+                requestFix()
             }
+        }
+    }
+
+    /// One location request, with retries armed.
+    private func requestFix() {
+        retriesLeft = Self.maxRetries
+        startWatchdog()
+        manager.requestLocation()
+    }
+
+    /// Fall back to nil if CoreLocation never answers, so callers are never
+    /// left awaiting a continuation that has no one left to resume it.
+    private func startWatchdog() {
+        watchdog?.cancel()
+        watchdog = Task { [weak self] in
+            try? await Task.sleep(for: Self.timeout)
+            guard !Task.isCancelled else { return }
+            self?.resume(with: nil)
         }
     }
 
@@ -58,6 +91,9 @@ final class LocationProvider: NSObject, CLLocationManagerDelegate {
     }
 
     private func resume(with location: CLLocation?) {
+        watchdog?.cancel()
+        watchdog = nil
+        retriesLeft = 0
         let waiting = continuations
         continuations.removeAll()
         for continuation in waiting {
@@ -73,7 +109,9 @@ final class LocationProvider: NSObject, CLLocationManagerDelegate {
         Task { @MainActor in
             switch status {
             case .authorizedWhenInUse, .authorizedAlways:
-                self.manager.requestLocation()
+                // Covers "Allow Once" as well as a standing grant — both land
+                // here, and both need the retries armed.
+                self.requestFix()
             case .denied, .restricted:
                 self.resume(with: nil)
             default:
@@ -88,6 +126,17 @@ final class LocationProvider: NSObject, CLLocationManagerDelegate {
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        Task { @MainActor in self.resume(with: nil) }
+        let isTransient = (error as? CLError)?.code == .locationUnknown
+        Task { @MainActor in
+            // kCLErrorLocationUnknown means "not yet", not "never" — the usual
+            // answer when the first fix is still settling. Anything else
+            // (denied, network) is final.
+            if isTransient, self.retriesLeft > 0 {
+                self.retriesLeft -= 1
+                self.manager.requestLocation()
+                return
+            }
+            self.resume(with: nil)
+        }
     }
 }
