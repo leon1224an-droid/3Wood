@@ -103,9 +103,18 @@ on conflict do nothing;
 -- Rankings. rank_position must be contiguous within (user, bucket).
 insert into public.user_course_rankings
   (user_id, course_id, bucket, rank_position, created_at, first_ranked_at)
+-- Anchored to the start of the current UTC week, not to now(). Dating these
+-- from now() means weeks_ago = 0 lands wherever in the week the reset happened,
+-- so the fixtures drift out of the current week as the DB sits — and the moment
+-- UTC Monday ticks over, leaderboard('week') returns nothing and
+-- testFeedAndLeaderboard fails with no code change behind it. Anchoring makes a
+-- reset produce the same week buckets whenever it runs. least(now(), ...) keeps
+-- the timestamps out of the future for a reset run in the first hour of Monday.
 select f.user_id, c.id, f.bucket::public.bucket, f.pos,
-       now() - (f.weeks_ago || ' weeks')::interval,
-       now() - (f.weeks_ago || ' weeks')::interval
+       least(now(), (date_trunc('week', now() at time zone 'utc') at time zone 'utc')
+                    + interval '1 hour') - (f.weeks_ago || ' weeks')::interval,
+       least(now(), (date_trunc('week', now() at time zone 'utc') at time zone 'utc')
+                    + interval '1 hour') - (f.weeks_ago || ' weeks')::interval
 from (values
   -- birdie_ben: an unbroken run of the last four weeks (streak = 4).
   ('11111111-1111-1111-1111-111111111111'::uuid, 'seed:pebble-beach',      'liked',    1, 0),
