@@ -32,4 +32,20 @@ final class AppNavigation {
         listsSegment = segment
         selectedTab = .lists
     }
+
+    /// Clear every tab's stack and return to the default tab.
+    ///
+    /// This object is @State on ThreeWoodApp, so it outlives sign-out — only
+    /// MainTabView is torn down. Without this, signing out from a deep screen
+    /// and signing back in restores the *previous* account's navigation: a
+    /// stranger's profile, or a course page, sitting on top of the new
+    /// session's Feed tab. Called from RootView on the transition to signedOut,
+    /// so it covers sign-out, account deletion, and an expired session alike.
+    func reset() {
+        selectedTab = .feed
+        listsSegment = .played
+        for tab in [Tab.feed, .map, .lists, .profile] {
+            router(for: tab).popToRoot()
+        }
+    }
 }

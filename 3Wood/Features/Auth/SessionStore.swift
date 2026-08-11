@@ -22,6 +22,12 @@ final class SessionStore {
     /// presents the new-password sheet while this is true.
     var needsPasswordReset = false
 
+    /// Signed-out as a plain Bool, so RootView can observe the transition and
+    /// clear navigation state that outlives the session.
+    var isSignedOut: Bool {
+        if case .signedOut = state { true } else { false }
+    }
+
     /// Runs for the lifetime of the root view, reacting to every auth change.
     func start() async {
         for await (event, session) in supa.auth.authStateChanges {
@@ -32,6 +38,13 @@ final class SessionStore {
                 } else {
                     state = .signedOut
                 }
+            // Unreachable on this client, and deliberately kept anyway.
+            // supabase-swift emits .passwordRecovery from one place only —
+            // handleImplicitGrantFlow — and the client defaults to PKCE, so a
+            // recovery link arrives as ?code=… and exchangeCodeForSession
+            // emits .signedIn instead. RootView.openPasswordReset is what
+            // actually raises the reset UI. This stays so the flow keeps
+            // working if the client is ever switched to the implicit flow.
             case .passwordRecovery:
                 needsPasswordReset = true
                 if let session {

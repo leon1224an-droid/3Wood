@@ -5,8 +5,10 @@ import Supabase
 /// and the main app based on session state.
 struct RootView: View {
     @Environment(SessionStore.self) private var session
+    @Environment(AppNavigation.self) private var nav
     @State private var invitedPerson: ProfileSummary?
     @State private var resetLinkError: String?
+    @State private var didSetNewPassword = false
 
     var body: some View {
         @Bindable var session = session
@@ -47,8 +49,21 @@ struct RootView: View {
                 Task { await openPasswordReset(url) }
             }
         }
+        // Reaching this sheet means a recovery link already established a real
+        // session. Dismissing it without setting a password would leave someone
+        // signed in to an account they still don't have a password for — and
+        // with no route back, since the link is single-use. So back out of the
+        // session unless the password was actually changed.
         .sheet(isPresented: $session.needsPasswordReset) {
-            UpdatePasswordView()
+            if !didSetNewPassword {
+                Task { await session.signOut() }
+            }
+            didSetNewPassword = false
+        } content: {
+            UpdatePasswordView(didSetPassword: $didSetNewPassword)
+        }
+        .onChange(of: session.isSignedOut) { _, signedOut in
+            if signedOut { nav.reset() }
         }
         .sheet(item: $invitedPerson) { person in
             InviteProfileSheet(person: person)
@@ -65,9 +80,12 @@ struct RootView: View {
 
     private func openPasswordReset(_ url: URL) async {
         do {
-            // session(from:) emits .signedIn before .passwordRecovery. Set the
-            // recovery UI explicitly as well, so a cold-launch listener cannot
-            // miss the second event while the auth gate changes screens.
+            // The reset UI has to be raised explicitly here — waiting on the
+            // .passwordRecovery auth event does not work. supabase-swift emits
+            // that event only from handleImplicitGrantFlow, and this client is
+            // on the default PKCE flow, so the link arrives as ?code=… and
+            // exchangeCodeForSession emits a bare .signedIn. Relying on the
+            // event is what made the reset screen never appear at all.
             try await supa.auth.session(from: url)
             session.beginPasswordReset()
         } catch {

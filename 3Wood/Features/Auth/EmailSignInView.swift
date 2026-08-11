@@ -18,7 +18,18 @@ struct EmailSignInView: View {
     @State private var password = ""
     @State private var errorMessage: String?
     @State private var isSubmitting = false
+    /// Kept separate from isSubmitting: that one drives the submit button's
+    /// spinner, and sending a reset email should not make the *Sign in* button
+    /// look like it is signing you in.
+    @State private var isSendingReset = false
     @State private var resetNote: String?
+
+    /// GoTrue matches on the exact string, so a trailing space from a paste or
+    /// from autofill comes back as "Invalid login credentials" with nothing on
+    /// screen to explain it. Normalise once, use everywhere.
+    private var normalizedEmail: String {
+        email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
 
     var body: some View {
         Form {
@@ -53,7 +64,7 @@ struct EmailSignInView: View {
                     }
                 }
                 .buttonStyle(.primary)
-                .disabled(isSubmitting || email.isEmpty || password.count < 6)
+                .disabled(isSubmitting || isSendingReset || normalizedEmail.isEmpty || password.count < 6)
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
 
@@ -63,7 +74,7 @@ struct EmailSignInView: View {
                     }
                     .font(.subheadline)
                     .tint(Color.fairwayGreen)
-                    .disabled(isSubmitting)
+                    .disabled(isSubmitting || isSendingReset)
                     .frame(maxWidth: .infinity)
                     .listRowBackground(Color.clear)
                 }
@@ -83,16 +94,25 @@ struct EmailSignInView: View {
     }
 
     private func sendReset() async {
-        guard !email.isEmpty else {
+        let address = normalizedEmail
+        guard !address.isEmpty else {
             resetNote = "Enter your email above first, then tap Forgot password."
             return
         }
+        // Nothing used to guard this, so the .disabled() on the button was
+        // never armed and repeat taps sent a reset each time — straight into
+        // GoTrue's rate limiter, and into the SMTP hourly cap in production.
+        isSendingReset = true
+        defer { isSendingReset = false }
         do {
             try await supa.auth.resetPasswordForEmail(
-                email,
+                address,
                 redirectTo: URL(string: "threewood://reset-password")
             )
-            resetNote = "Check \(email) for a reset link. Open it on this device to set a new password."
+            // "Open it on this device" is load-bearing: the PKCE code verifier
+            // is stored locally by this install, so a link opened on another
+            // device cannot complete the exchange.
+            resetNote = "Check \(address) for a reset link. Open it on this device to set a new password."
         } catch {
             resetNote = "Couldn't send the reset email. \(error.localizedDescription)"
         }
@@ -105,9 +125,9 @@ struct EmailSignInView: View {
         do {
             switch mode {
             case .signUp:
-                try await supa.auth.signUp(email: email, password: password)
+                try await supa.auth.signUp(email: normalizedEmail, password: password)
             case .signIn:
-                try await supa.auth.signIn(email: email, password: password)
+                try await supa.auth.signIn(email: normalizedEmail, password: password)
             }
             // SessionStore reacts to the auth state change; nothing else to do.
         } catch {

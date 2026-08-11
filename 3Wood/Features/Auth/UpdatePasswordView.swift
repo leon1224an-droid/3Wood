@@ -4,6 +4,10 @@ import Supabase
 /// Presented after a password-recovery deep link: sets a new password on the
 /// recovery session established by the link.
 struct UpdatePasswordView: View {
+    /// Set on success so RootView can tell a completed reset from an abandoned
+    /// one — abandoning signs the recovery session back out.
+    @Binding var didSetPassword: Bool
+
     @Environment(\.dismiss) private var dismiss
     @State private var password = ""
     @State private var errorMessage: String?
@@ -57,6 +61,7 @@ struct UpdatePasswordView: View {
         defer { isSubmitting = false }
         do {
             try await supa.auth.update(user: UserAttributes(password: password))
+            didSetPassword = true
             dismiss()
         } catch {
             errorMessage = error.localizedDescription
@@ -65,5 +70,5 @@ struct UpdatePasswordView: View {
 }
 
 #Preview {
-    UpdatePasswordView()
+    UpdatePasswordView(didSetPassword: .constant(false))
 }
