@@ -202,6 +202,14 @@ struct ProfileView: View {
     private func deleteAccount() async {
         do {
             try await supa.rpc("delete_account").execute()
+            // Flag before signing out, and let RootView show the confirmation
+            // over the Welcome screen. Acknowledging it *here* would mean
+            // holding a session for a user the backend has already deleted
+            // until they tap OK — quitting in that window would leave the app
+            // signed in to nothing.
+            session.didDeleteAccount = true
+            // .local because the user is gone server-side; a global sign-out
+            // would just 403 against a token with no account behind it.
             try? await supa.auth.signOut(scope: .local)
         } catch {
             deleteError = error.localizedDescription

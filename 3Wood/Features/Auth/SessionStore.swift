@@ -22,6 +22,12 @@ final class SessionStore {
     /// presents the new-password sheet while this is true.
     var needsPasswordReset = false
 
+    /// Set once delete_account() has succeeded, so the Welcome screen can
+    /// confirm it. Signing out is all that visibly happens otherwise, which
+    /// looks identical to tapping Sign out — and an App Review tester checking
+    /// Guideline 5.1.1(v) has no way to tell the deletion actually took.
+    var didDeleteAccount = false
+
     /// Signed-out as a plain Bool, so RootView can observe the transition and
     /// clear navigation state that outlives the session.
     var isSignedOut: Bool {

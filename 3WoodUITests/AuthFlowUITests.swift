@@ -60,13 +60,48 @@ final class AuthFlowUITests: XCTestCase {
         }
     }
 
+    /// Sign a throwaway account up directly against the local stack.
+    ///
+    /// The simulator shares the host's loopback, which is how the app reaches
+    /// Supabase at all — so the test process can talk to it too. This is the
+    /// local anon key, the same one checked into Supa.swift for DEBUG builds;
+    /// RLS is the boundary, and this never points anywhere but 127.0.0.1.
+    private func createAccount(email: String, password: String) {
+        let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
+        var request = URLRequest(url: URL(string: "http://127.0.0.1:54321/auth/v1/signup")!)
+        request.httpMethod = "POST"
+        request.addValue(anonKey, forHTTPHeaderField: "apikey")
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(
+            withJSONObject: ["email": email, "password": password]
+        )
+
+        let done = expectation(description: "signup")
+        var status = 0
+        URLSession.shared.dataTask(with: request) { _, response, _ in
+            status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            done.fulfill()
+        }.resume()
+        wait(for: [done], timeout: 30)
+        XCTAssertEqual(status, 200, "Could not create the throwaway account — is the local stack up?")
+    }
+
     /// Get to the Welcome screen from wherever the app happens to be.
     private func ensureSignedOut() {
+        // Fully signed in: sign out from the Profile tab.
         if app.tabBars.buttons["Profile"].waitForExistence(timeout: 5) {
-            app.tabBars.buttons["Profile"].tap()
+            switchToTab("Profile")
             let signOut = app.buttons["Sign out"]
             if signOut.waitForExistence(timeout: 5) { signOut.tap() }
         }
+
+        // Signed in with no profile row yet — the username setup screen. It is
+        // the root of the auth gate, so there is no back button; its own Sign
+        // out is the only way off, and a run that died here used to strand
+        // every later test on a screen they could not leave.
+        let setupSignOut = app.buttons["Sign out"]
+        if setupSignOut.waitForExistence(timeout: 3) { setupSignOut.tap() }
+
         XCTAssertTrue(app.buttons["Sign in"].waitForExistence(timeout: timeout),
                       "Did not reach the Welcome screen")
     }
@@ -176,6 +211,66 @@ final class AuthFlowUITests: XCTestCase {
         XCTAssertFalse(app.tabBars.buttons["Lists"].exists,
                        "Tab bar survived sign-out")
         snapshot("34-SignOut-Welcome")
+    }
+
+    // MARK: - Account deletion
+
+    /// Guideline 5.1.1(v): deletion has to be real and has to say so. Runs on a
+    /// throwaway account it creates itself — the fixtures are shared, and this
+    /// test really does delete what it signs up.
+    func testDeletingAnAccountConfirmsAndReturnsToWelcome() {
+        ensureSignedOut()
+
+        // Unique per run: the account is gone by the end, but a retry inside
+        // the same second would otherwise collide with itself.
+        let address = "probe_delete_\(UUID().uuidString.prefix(8).lowercased())@example.com"
+
+        // Created out-of-band rather than through the sign-up form: that form's
+        // SecureField is .newPassword, which makes iOS offer a strong password
+        // and swallow typeText, leaving the field empty and the button dimmed.
+        // Deletion is what this test is about, so sign in on the path that
+        // works and let the auth gate route to username setup as it would for
+        // any new account.
+        createAccount(email: address, password: "testpass123")
+        submitSignIn(email: address, password: "testpass123")
+        // Sign-in here lands on username setup rather than the tab bar, so the
+        // save-password sheet has to be cleared before that screen, not after —
+        // it covers the whole window and nothing underneath is hittable.
+        dismissSavePasswordPrompt()
+
+        // First launch for a new account: pick a username before the tabs
+        // exist. Wait for the screen itself before reaching for the field —
+        // firstMatch would otherwise still resolve to the sign-up form's email
+        // field for the moment it takes the auth gate to swap screens.
+        XCTAssertTrue(app.navigationBars["Welcome!"].waitForExistence(timeout: timeout),
+                      "Signup did not reach the username setup screen")
+        let username = app.textFields["username"]
+        tap(username, "Username field")
+        username.typeText("probe\(Int.random(in: 100_000...999_999))")
+        tap(app.buttons["Let's golf"], "Finish setup")
+
+        XCTAssertTrue(app.tabBars.buttons["Lists"].waitForExistence(timeout: timeout),
+                      "Signup did not reach the main app")
+        dismissSavePasswordPrompt()
+
+        switchToTab("Profile")
+        tap(app.buttons["Delete account"], "Delete account")
+        tap(app.buttons["Delete everything"], "Confirm deletion")
+
+        let confirmation = app.alerts["Account deleted"]
+        XCTAssertTrue(confirmation.waitForExistence(timeout: timeout),
+                      "Deletion gave no confirmation — indistinguishable from a sign-out")
+        snapshot("36-Delete-Confirmed")
+        confirmation.buttons["OK"].tap()
+
+        XCTAssertTrue(app.buttons["Create account"].waitForExistence(timeout: timeout),
+                      "Deletion did not land on the Welcome screen")
+        XCTAssertFalse(app.tabBars.buttons["Lists"].exists, "Tab bar survived deletion")
+
+        // And it must really be gone: the same credentials must not sign in.
+        submitSignIn(email: address, password: "testpass123")
+        XCTAssertTrue(app.staticTexts["Invalid login credentials"].waitForExistence(timeout: timeout),
+                      "The deleted account could still sign in")
     }
 
     /// Regression: AppNavigation is @State on ThreeWoodApp, so it outlives the

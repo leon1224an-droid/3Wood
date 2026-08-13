@@ -65,6 +65,14 @@ struct RootView: View {
         .onChange(of: session.isSignedOut) { _, signedOut in
             if signedOut { nav.reset() }
         }
+        // Shown over Welcome, after the sign-out that deletion triggers. The
+        // deletion is already done by the time this appears — this is an
+        // acknowledgement, not a last chance to back out.
+        .alert("Account deleted", isPresented: $session.didDeleteAccount) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Your profile, rankings, and lists have been permanently removed.")
+        }
         .sheet(item: $invitedPerson) { person in
             InviteProfileSheet(person: person)
         }
