@@ -68,6 +68,12 @@ struct NotificationsView: View {
                 case "mention":
                     Image(systemName: "at")
                         .foregroundStyle(Color.fairwayGreen)
+                case "list_like":
+                    Image(systemName: "heart.fill")
+                        .foregroundStyle(Color.clayRed)
+                case "list_comment":
+                    Image(systemName: "text.bubble")
+                        .foregroundStyle(Color.fairwayGreen)
                 default:
                     Image(systemName: "bubble.left")
                         .foregroundStyle(Color.fairwayGreen)
@@ -79,7 +85,7 @@ struct NotificationsView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(line(for: item))
                     .font(.subheadline)
-                if let body = item.commentBody, item.kind == "comment" {
+                if let body = item.commentBody, item.kind == "comment" || item.kind == "list_comment" {
                     Text(body)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -98,19 +104,27 @@ struct NotificationsView: View {
         var actor = AttributedString("@\(item.actorUsername) ")
         actor.font = .subheadline.weight(.semibold)
         let course = item.courseName ?? "your activity"
+        let list = item.listTitle ?? "your list"
         let rest: String = switch item.kind {
         case "follow": "started following you"
         case "reaction": "reacted to your round at \(course)"
         case "tag": "tagged you at \(course)"
         case "mention": "mentioned you in a comment"
+        case "list_like": "liked your list \"\(list)\""
+        case "list_comment": "commented on your list \"\(list)\""
         default: "commented on your round at \(course)"
         }
         return actor + AttributedString(rest)
     }
 
-    /// Follows open the person; engagement opens the activity it happened on.
+    /// Follows open the person; engagement opens the activity or list it
+    /// happened on. List notifications carry no activityID, so this check
+    /// must come before the "activityID == nil" fallback below, or every
+    /// list_like/list_comment would misroute to the actor's profile.
     private func open(_ item: AppNotification) {
-        if item.kind == "follow" || item.activityID == nil {
+        if let listID = item.listID {
+            router.push(.listID(listID))
+        } else if item.kind == "follow" || item.activityID == nil {
             router.push(.person(ProfileSummary(
                 id: item.actorID, username: item.actorUsername,
                 displayName: nil, isFollowing: false

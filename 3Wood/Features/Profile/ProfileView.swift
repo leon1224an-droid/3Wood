@@ -7,6 +7,7 @@ struct ProfileView: View {
     @State private var stats: ProfileStats?
     @State private var weekStreak: Int?
     @State private var wantToPlayCount: Int?
+    @State private var listCount: Int?
     @State private var myPhone: String?
     @State private var isEditingPhone = false
     @State private var isEditingUsername = false
@@ -64,6 +65,7 @@ struct ProfileView: View {
                 Section {
                     listLink("Courses played", count: stats?.played, segment: .played)
                     listLink("Want to play", count: wantToPlayCount, segment: .wantToPlay)
+                    listLink("My lists", count: listCount, segment: .myLists)
                 }
                 .listRowBackground(Color.clear)
 
@@ -196,6 +198,7 @@ struct ProfileView: View {
         stats = try? await SocialRepo.stats(of: myID)
         weekStreak = try? await FeedRepo.weekStreak()
         wantToPlayCount = (try? await WantToPlayRepo.list())?.count
+        listCount = (try? await ListsRepo.myLists())?.count
         myPhone = try? await PhoneRepo.myPhone()
     }
 

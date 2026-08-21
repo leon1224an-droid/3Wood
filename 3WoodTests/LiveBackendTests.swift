@@ -6,6 +6,32 @@ import Testing
 /// Uses bare URLSession + the test1 account so the app's stored session is
 /// never touched.
 struct LiveBackendTests {
+    /// `JSONDecoder()` on its own expects numeric dates. The app never hits
+    /// this — `supa.rpc(...).execute().value` goes through supabase-swift's
+    /// own decoder, which parses Postgres's `timestamptz` text (fractional
+    /// seconds, `+00:00` offset) via `Date.ISO8601FormatStyle`. Tests that
+    /// decode a Date field from a raw REST response need the same strategy,
+    /// or they fail on a decoding difference this app doesn't actually have.
+    private func supabaseDecoder() -> JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let string = try container.decode(String.self)
+            if let date = try? Date(string, strategy: .iso8601.year().month().day()
+                .dateTimeSeparator(.standard).time(includingFractionalSeconds: true)) {
+                return date
+            }
+            if let date = try? Date(string, strategy: .iso8601.year().month().day()
+                .dateTimeSeparator(.standard).time(includingFractionalSeconds: false)) {
+                return date
+            }
+            throw DecodingError.dataCorruptedError(
+                in: container, debugDescription: "Invalid date format: \(string)"
+            )
+        }
+        return decoder
+    }
+
     private func accessToken() async throws -> String {
         var url = URLComponents(url: Config.supabaseURL.appendingPathComponent("auth/v1/token"), resolvingAgainstBaseURL: false)!
         url.queryItems = [URLQueryItem(name: "grant_type", value: "password")]
@@ -165,5 +191,75 @@ struct LiveBackendTests {
         ], token: token)
         let courses = try JSONDecoder().decode([Course].self, from: data)
         #expect(courses.contains { $0.name.contains("Pebble Beach") })
+    }
+
+    /// my_ranked_courses() gained course_type for the list picker's type
+    /// filter — the same class of "server added a field, client silently
+    /// drops it" bug RankedCourse's other optionals already guard against.
+    @Test func myRankedCoursesIncludesCourseType() async throws {
+        let token = try await accessToken()
+        let (data, status) = try await rest("POST", "rpc/my_ranked_courses", token: token, body: Data("{}".utf8))
+        #expect(status == 200, "my_ranked_courses failed: \(String(decoding: data, as: UTF8.self))")
+        let ranked = try supabaseDecoder().decode([RankedCourse].self, from: data)
+        #expect(!ranked.isEmpty)
+        #expect(ranked.contains { $0.courseType != nil },
+                "course_type should be present on at least one ranked course")
+    }
+
+    /// End-to-end against the real custom_lists RPCs: decodes CustomList and
+    /// ListCourse from live responses (snake_case keys, the optional-heavy
+    /// shape my_lists vs list_detail share) rather than hand-written JSON,
+    /// so a real schema/model mismatch would fail here, not just in the app.
+    @Test func customListRPCsRoundTripAndDecode() async throws {
+        let token = try await accessToken()
+
+        let searched = try await callRPC("search_courses", body: ["p_query": "pebble beach"], token: token)
+        let course = try #require(
+            try JSONDecoder().decode([Course].self, from: searched).first { $0.name == "Pebble Beach Golf Links" }
+        )
+
+        struct CreateBody: Encodable { let p_title: String }
+        let (createData, createStatus) = try await rest(
+            "POST", "rpc/create_list", token: token,
+            body: try JSONEncoder().encode(CreateBody(p_title: "Live Backend Test List"))
+        )
+        #expect(createStatus == 200, "create_list failed: \(String(decoding: createData, as: UTF8.self))")
+        let listID = try JSONDecoder().decode(Int.self, from: createData)
+
+        defer {
+            Task {
+                struct DeleteBody: Encodable { let p_list_id: Int }
+                _ = try? await rest(
+                    "POST", "rpc/delete_list", token: token,
+                    body: try JSONEncoder().encode(DeleteBody(p_list_id: listID))
+                )
+            }
+        }
+
+        struct AddBody: Encodable { let p_list_id: Int; let p_course_ids: [Int] }
+        let (addData, addStatus) = try await rest(
+            "POST", "rpc/add_courses_to_list", token: token,
+            body: try JSONEncoder().encode(AddBody(p_list_id: listID, p_course_ids: [course.id]))
+        )
+        #expect(addStatus == 200, "add_courses_to_list failed: \(String(decoding: addData, as: UTF8.self))")
+        #expect(try JSONDecoder().decode(Int.self, from: addData) == 1)
+
+        struct ListIDBody: Encodable { let p_list_id: Int }
+        let (coursesData, coursesStatus) = try await rest(
+            "POST", "rpc/list_courses", token: token,
+            body: try JSONEncoder().encode(ListIDBody(p_list_id: listID))
+        )
+        #expect(coursesStatus == 200, "list_courses failed: \(String(decoding: coursesData, as: UTF8.self))")
+        let listCourses = try supabaseDecoder().decode([ListCourse].self, from: coursesData)
+        #expect(listCourses.count == 1)
+        #expect(listCourses.first?.name == "Pebble Beach Golf Links")
+
+        let (mineData, mineStatus) = try await rest("POST", "rpc/my_lists", token: token, body: Data("{}".utf8))
+        #expect(mineStatus == 200, "my_lists failed: \(String(decoding: mineData, as: UTF8.self))")
+        let mine = try supabaseDecoder().decode([CustomList].self, from: mineData)
+        let created = try #require(mine.first { $0.id == listID })
+        #expect(created.courseCount == 1)
+        #expect(created.visibility == .private)
+        #expect(created.description == nil)
     }
 }

@@ -4,6 +4,7 @@ struct ListsView: View {
     enum Segment: String, CaseIterable, Identifiable {
         case played = "Played"
         case wantToPlay = "Want to Play"
+        case myLists = "My Lists"
         var id: String { rawValue }
     }
 
@@ -19,8 +20,11 @@ struct ListsView: View {
     @State private var playedSort: PlayedSort = .myRank
     @State private var ranked: [RankedCourse] = []
     @State private var wantToPlay: [Course] = []
+    @State private var myLists: [CustomList] = []
     @State private var isLoggingCourse = false
     @State private var isAddingWantToPlay = false
+    @State private var isCreatingList = false
+    @State private var pendingListDeletion: CustomList?
     @State private var hasLoaded = false
     @State private var loadFailed = false
     @State private var pendingRemoval: RankedCourse?
@@ -35,6 +39,7 @@ struct ListsView: View {
                 switch segment {
                 case .played: playedList
                 case .wantToPlay: wantToPlayList
+                case .myLists: myListsSection
                 }
             }
             .creamScreen()
@@ -52,26 +57,47 @@ struct ListsView: View {
                         .accessibilityLabel("Sort courses")
                     }
                 }
-                ToolbarItem(placement: .primaryAction) {
-                    // Both lists are added to from here. Logging used to be the
-                    // only thing "+" did, which left Want to Play reachable
-                    // only from a course's own page.
-                    Menu {
+                if segment == .myLists {
+                    ToolbarItem(placement: .topBarLeading) {
                         Button {
-                            isLoggingCourse = true
+                            router.push(.exploreLists)
                         } label: {
-                            Label("Log a played course", systemImage: "flag.checkered")
+                            Image(systemName: "sparkle.magnifyingglass")
                         }
-                        Button {
-                            isAddingWantToPlay = true
-                        } label: {
-                            Label("Add to Want to Play", systemImage: "bookmark")
-                        }
-                    } label: {
-                        Image(systemName: "plus")
+                        .accessibilityLabel("Explore lists")
+                        .accessibilityIdentifier("exploreListsButton")
                     }
-                    .accessibilityLabel("Add a course")
-                    .accessibilityIdentifier("addCourseMenu")
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    if segment == .myLists {
+                        Button {
+                            isCreatingList = true
+                        } label: {
+                            Image(systemName: "plus")
+                        }
+                        .accessibilityLabel("New list")
+                        .accessibilityIdentifier("newListButton")
+                    } else {
+                        // Both lists are added to from here. Logging used to be
+                        // the only thing "+" did, which left Want to Play
+                        // reachable only from a course's own page.
+                        Menu {
+                            Button {
+                                isLoggingCourse = true
+                            } label: {
+                                Label("Log a played course", systemImage: "flag.checkered")
+                            }
+                            Button {
+                                isAddingWantToPlay = true
+                            } label: {
+                                Label("Add to Want to Play", systemImage: "bookmark")
+                            }
+                        } label: {
+                            Image(systemName: "plus")
+                        }
+                        .accessibilityLabel("Add a course")
+                        .accessibilityIdentifier("addCourseMenu")
+                    }
                 }
             }
             .appDestinations()
@@ -85,6 +111,11 @@ struct ListsView: View {
             }) {
                 // Land on the list the course just joined, so the save is visible.
                 AddToWantToPlaySheet { segment = .wantToPlay }
+            }
+            .sheet(isPresented: $isCreatingList) {
+                ListEditorSheet(editing: nil) { created in
+                    myLists.insert(created, at: 0)
+                }
             }
             .task { await reload() }
             .onAppear {
@@ -113,6 +144,22 @@ struct ListsView: View {
                 }
             } message: {
                 Text("This removes it from your ranking and rescores the rest of the bucket.")
+            }
+            .confirmationDialog(
+                "Delete \"\(pendingListDeletion?.title ?? "this list")\"?",
+                isPresented: .init(
+                    get: { pendingListDeletion != nil },
+                    set: { if !$0 { pendingListDeletion = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                Button("Delete list", role: .destructive) {
+                    if let list = pendingListDeletion {
+                        Task { await deleteList(list) }
+                    }
+                }
+            } message: {
+                Text("This can't be undone. Courses stay in your ranking — only the list goes away.")
             }
             .alert("Something went wrong", isPresented: .init(
                 get: { actionError != nil },
@@ -214,6 +261,48 @@ struct ListsView: View {
         }
     }
 
+    @ViewBuilder
+    private var myListsSection: some View {
+        if myLists.isEmpty {
+            if loadFailed {
+                LoadFailedView { await reload() }
+            } else if hasLoaded {
+                ContentUnavailableView {
+                    Label("No lists yet", systemImage: "list.star")
+                } description: {
+                    Text("Build a ranked list from courses you've already played — a state trip, a favorites round-up, whatever you want to name it.")
+                } actions: {
+                    Button("Create your first list") { isCreatingList = true }
+                        .buttonStyle(.borderedProminent)
+                }
+            } else {
+                ProgressView().frame(maxHeight: .infinity)
+            }
+        } else {
+            List {
+                ForEach(myLists) { list in
+                    // my_lists() doesn't return owner_id/is_mine (every row is
+                    // already the caller's own) — set it here so the detail
+                    // screen's manage menu doesn't flash "Report" before its
+                    // own reload() corrects it.
+                    NavigationLink(value: Destination.list(asMine(list))) {
+                        ListCardRow(list: list)
+                    }
+                    .listRowBackground(Color.clear)
+                    .listRowSeparatorTint(Color.sand)
+                    .swipeActions(edge: .trailing) {
+                        Button("Delete", role: .destructive) {
+                            pendingListDeletion = list
+                        }
+                        .tint(Color.clayRed)
+                    }
+                }
+            }
+            .listStyle(.plain)
+            .refreshable { await reload() }
+        }
+    }
+
     /// "Played 12 Mar 2026" — with a round count once there's more than one.
     private func playedLine(for course: RankedCourse, on played: String) -> String {
         let date = PlayDate.display(played)
@@ -232,16 +321,36 @@ struct ListsView: View {
     private func reload() async {
         async let rankedTask = RankingRepo.myRankedCourses()
         async let wantTask = WantToPlayRepo.list()
-        do {
-            ranked = try await rankedTask
-            wantToPlay = try await wantTask
-            loadFailed = false
-        } catch {
-            // Keep whatever was already on screen; only flag when there's
-            // nothing to show instead.
-            loadFailed = ranked.isEmpty && wantToPlay.isEmpty
-        }
+        async let listsTask = ListsRepo.myLists()
+        // Independent try?s, not one do/catch — a failure on any one segment
+        // (e.g. My Lists) must not abort the others before they're assigned.
+        // A shared `do` here previously meant a Played-tab failure could
+        // silently leave My Lists empty with no error shown.
+        let newRanked = try? await rankedTask
+        let newWantToPlay = try? await wantTask
+        let newMyLists = try? await listsTask
+        if let newRanked { ranked = newRanked }
+        if let newWantToPlay { wantToPlay = newWantToPlay }
+        if let newMyLists { myLists = newMyLists }
+        // Keep whatever was already on screen; only flag when there's
+        // nothing to show instead.
+        loadFailed = ranked.isEmpty && wantToPlay.isEmpty && myLists.isEmpty
         hasLoaded = true
+    }
+
+    private func asMine(_ list: CustomList) -> CustomList {
+        var copy = list
+        copy.isMine = true
+        return copy
+    }
+
+    private func deleteList(_ list: CustomList) async {
+        do {
+            try await ListsRepo.delete(listID: list.id)
+            myLists.removeAll { $0.id == list.id }
+        } catch {
+            actionError = "Couldn't delete \"\(list.title)\". \(error.localizedDescription)"
+        }
     }
 
     private func remove(_ course: RankedCourse) async {

@@ -33,6 +33,18 @@ final class NavigationUITests: XCTestCase {
         element.tap()
     }
 
+    /// Backspaces out whatever the field already holds, then types `text`.
+    /// XCUITest has no first-class "select all" on a plain TextField, so this
+    /// is the standard workaround: delete-key characters equal to the
+    /// current value's length, typed as text.
+    private func clearAndType(_ element: XCUIElement, _ text: String) {
+        element.tap()
+        if let current = element.value as? String, !current.isEmpty {
+            element.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: current.count))
+        }
+        element.typeText(text)
+    }
+
     /// Switch tabs reliably. The very first tab switch right after programmatic
     /// sign-in can be dropped, so tap until the tab reports selected.
     private func switchToTab(_ name: String) {
@@ -519,5 +531,89 @@ final class NavigationUITests: XCTestCase {
         sleep(4) // geocode + recenter + region course load
         snapshot("23-Map-CityJump")
         XCTAssertTrue(search.exists, "Map search field missing")
+    }
+
+    /// Custom lists end to end: create, add a course via a state filter,
+    /// rename, toggle to public, then delete.
+    func testCustomListLifecycle() {
+        ensureSignedInAsDemo()
+        switchToTab("Lists")
+        tap(app.buttons["My Lists"], "My Lists segment")
+
+        tap(app.buttons["newListButton"], "New list button")
+        XCTAssertTrue(app.navigationBars["New List"].waitForExistence(timeout: timeout),
+                      "New list sheet did not open")
+
+        let titleField = app.textFields["listTitleField"]
+        tap(titleField, "List title field")
+        titleField.typeText("UI Test List")
+        snapshot("40-NewList-Form")
+        tap(app.buttons["saveListButton"], "Save new list")
+
+        XCTAssertTrue(app.staticTexts["UI Test List"].waitForExistence(timeout: timeout),
+                      "New list row not visible after saving")
+        snapshot("41-MyLists-AfterCreate")
+        tap(app.staticTexts["UI Test List"], "New list row")
+
+        XCTAssertTrue(app.navigationBars["UI Test List"].waitForExistence(timeout: timeout),
+                      "List detail did not open")
+
+        // Add a course, filtered to a state the demo account (birdie_ben) has
+        // ranked courses in — Pebble Beach, CA, from the seeded fixtures.
+        tap(app.buttons["listManageMenu"], "List manage menu")
+        tap(app.buttons["addCoursesButton"], "Add or remove courses")
+        XCTAssertTrue(app.navigationBars["Add Courses"].waitForExistence(timeout: timeout),
+                      "Add-courses sheet did not open")
+
+        tap(app.buttons["listFilterMenu"], "State filter menu")
+        tap(app.buttons["CA"], "CA filter option")
+        snapshot("42-AddCourses-Filtered")
+
+        let firstCourse = app.cells.element(boundBy: 0)
+        XCTAssertTrue(firstCourse.waitForExistence(timeout: timeout), "No courses matched the CA filter")
+        firstCourse.tap()
+        tap(app.navigationBars.buttons["Save"], "Save added courses")
+
+        // Rows aren't in a List (they live alongside the header/comments in
+        // one scroll view), so assert via the per-row remove button rather
+        // than app.cells. That button only renders when live.isMine == true,
+        // so this also doubles as a check that the manage-menu path (and the
+        // asMine() patch on the My Lists row) resolved ownership correctly —
+        // a failure here could mean either "no courses" or "isMine came back
+        // false," not just an empty list.
+        let removeButton = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Remove'")).firstMatch
+        XCTAssertTrue(removeButton.waitForExistence(timeout: timeout),
+                      "List detail shows no courses after adding")
+        snapshot("43-ListDetail-WithCourse")
+
+        // Rename via the manage menu.
+        tap(app.buttons["listManageMenu"], "List manage menu")
+        tap(app.buttons["Edit list"], "Edit list")
+        XCTAssertTrue(app.navigationBars["Edit List"].waitForExistence(timeout: timeout),
+                      "Edit list sheet did not open")
+
+        let editTitleField = app.textFields["listTitleField"]
+        clearAndType(editTitleField, "Renamed UI Test List")
+
+        // Toggle to public while the sheet is open.
+        tap(app.buttons["listVisibilityPicker"], "Visibility picker")
+        tap(app.buttons["Public"], "Public option")
+
+        tap(app.buttons["saveListButton"], "Save edited list")
+
+        XCTAssertTrue(app.navigationBars["Renamed UI Test List"].waitForExistence(timeout: timeout),
+                      "Rename did not take effect")
+        snapshot("44-ListDetail-Renamed")
+
+        // Delete.
+        tap(app.buttons["listManageMenu"], "List manage menu")
+        tap(app.buttons["deleteListButton"], "Delete list menu item")
+        tap(app.buttons["Delete list"], "Confirm delete")
+
+        XCTAssertTrue(app.navigationBars["My Courses"].waitForExistence(timeout: timeout),
+                      "Did not return to the list after deleting")
+        XCTAssertFalse(app.staticTexts["Renamed UI Test List"].exists,
+                       "Deleted list still visible")
+        snapshot("45-MyLists-AfterDelete")
     }
 }

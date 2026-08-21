@@ -17,10 +17,11 @@ struct ActivityComment: Codable, Identifiable, Hashable, Sendable {
     }
 }
 
-/// One entry in the alert feed: a new follower, or engagement on your activity.
+/// One entry in the alert feed: a new follower, or engagement on your
+/// activity or a list of yours.
 struct AppNotification: Codable, Identifiable, Hashable, Sendable {
     let id: Int
-    let kind: String            // "follow" | "comment" | "reaction"
+    let kind: String            // "follow" | "comment" | "reaction" | "tag" | "mention" | "list_like" | "list_comment"
     let actorID: UUID
     let actorUsername: String
     let activityID: Int?
@@ -28,6 +29,8 @@ struct AppNotification: Codable, Identifiable, Hashable, Sendable {
     let courseName: String?
     let emoji: String?
     let commentBody: String?
+    let listID: Int?
+    let listTitle: String?
     let readAt: Date?
     let createdAt: Date
 
@@ -41,6 +44,8 @@ struct AppNotification: Codable, Identifiable, Hashable, Sendable {
         case courseID = "course_id"
         case courseName = "course_name"
         case commentBody = "comment_body"
+        case listID = "list_id"
+        case listTitle = "list_title"
         case readAt = "read_at"
         case createdAt = "created_at"
     }

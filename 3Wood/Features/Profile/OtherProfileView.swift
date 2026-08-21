@@ -7,6 +7,7 @@ struct OtherProfileView: View {
     @State var person: ProfileSummary
     @State private var stats: ProfileStats?
     @State private var ranked: [RankedCourse] = []
+    @State private var lists: [CustomList] = []
     @State private var isBlocked = false
     @State private var isReporting = false
     @State private var isConfirmingBlock = false
@@ -92,6 +93,20 @@ struct OtherProfileView: View {
                 }
             }
             .listRowBackground(Color.clear)
+
+            if !lists.isEmpty {
+                Section("Their lists") {
+                    ForEach(lists) { list in
+                        Button {
+                            router.push(.list(list))
+                        } label: {
+                            ListCardRow(list: list)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .listRowBackground(Color.clear)
+            }
         }
         .listStyle(.plain)
         .listRowSeparatorTint(Color.sand)
@@ -158,10 +173,12 @@ struct OtherProfileView: View {
     private func reload() async {
         async let statsTask = SocialRepo.stats(of: person.id)
         async let rankedTask = SocialRepo.rankedCourses(of: person.id)
+        async let listsTask = ListsRepo.publicLists(of: person.id)
         async let followingTask = SocialRepo.isFollowing(person.id)
         async let blockedTask = ModerationRepo.isBlocked(userID: person.id)
         stats = try? await statsTask
         ranked = (try? await rankedTask) ?? []
+        lists = (try? await listsTask) ?? []
         if let following = try? await followingTask {
             person.isFollowing = following
         }

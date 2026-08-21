@@ -17,6 +17,9 @@ enum Destination: Hashable {
     case findFriends
     case contacts
     case about
+    case list(CustomList)
+    case listID(Int)
+    case exploreLists
 
     /// Destinations that render the same screen share a key (a course pushed
     /// as a full Course vs just its id), so Router.push can collapse cycles.
@@ -33,6 +36,9 @@ enum Destination: Hashable {
         case .findFriends: "findFriends"
         case .contacts: "contacts"
         case .about: "about"
+        case .list(let list): "list-\(list.id)"
+        case .listID(let id): "list-\(id)"
+        case .exploreLists: "exploreLists"
         }
     }
 }
@@ -78,6 +84,9 @@ extension View {
             case .findFriends: FindFriendsView()
             case .contacts: ContactsMatchView()
             case .about: AboutView()
+            case .list(let list): ListDetailView(list: list)
+            case .listID(let id): ListDetailByID(listID: id)
+            case .exploreLists: ExploreListsView()
             }
         }
     }
