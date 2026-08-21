@@ -23,9 +23,12 @@ enum ModerationRepo {
             .execute()
     }
 
+    /// Blocking also files a report — Guideline 1.2 requires that blocking an
+    /// abusive user notify us of the content, not just hide it from the blocker.
     static func block(userID: UUID) async throws {
         struct Row: Encodable { let blocked: UUID }
         try await supa.from("blocked_users").insert(Row(blocked: userID)).execute()
+        try? await report(userID: userID, reason: "blocked-by-user")
     }
 
     static func unblock(userID: UUID) async throws {

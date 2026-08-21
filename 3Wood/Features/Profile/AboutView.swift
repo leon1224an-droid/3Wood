@@ -36,6 +36,7 @@ struct AboutView: View {
                      destination: URL(string: "https://leon1224an-droid.github.io/3Wood/privacy.html")!)
                 Link("Terms of service",
                      destination: URL(string: "https://leon1224an-droid.github.io/3Wood/terms.html")!)
+                NavigationLink("Safety") { SafetyView() }
             }
             .listRowBackground(Color.clear)
 

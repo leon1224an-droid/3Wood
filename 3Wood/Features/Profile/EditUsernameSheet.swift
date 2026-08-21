@@ -72,6 +72,10 @@ struct EditUsernameSheet: View {
     }
 
     private func save() async {
+        guard !ContentFilter.isObjectionable(username) else {
+            errorMessage = "That username isn't allowed. Please choose another."
+            return
+        }
         isSaving = true
         errorMessage = nil
         defer { isSaving = false }

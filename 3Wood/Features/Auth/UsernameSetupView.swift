@@ -71,6 +71,10 @@ struct UsernameSetupView: View {
     }
 
     private func submit() async {
+        guard !ContentFilter.isObjectionable(username) else {
+            errorMessage = "That username isn't allowed. Please choose another."
+            return
+        }
         isSubmitting = true
         errorMessage = nil
         defer { isSubmitting = false }

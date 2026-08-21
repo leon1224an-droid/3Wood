@@ -74,6 +74,10 @@ struct WriteReviewSheet: View {
     }
 
     private func save() async {
+        guard !ContentFilter.isObjectionable(trimmed) else {
+            saveError = "That review contains language we don't allow. Please revise it."
+            return
+        }
         isSaving = true
         defer { isSaving = false }
         do {

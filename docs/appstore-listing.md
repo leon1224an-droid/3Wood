@@ -166,9 +166,39 @@ most of the suite fail for no code reason.
   asked to test account deletion (5.1.1(v)), and the app's own Delete Account
   button will remove it — if that happens, recreate it and update this note.
 - UGC moderation: report + block on all user content (Guideline 1.2) — reports
-  reviewed within 24 hours via Supabase dashboard.
+  reviewed within 24 hours via Supabase dashboard. A zero-tolerance policy is
+  stated in the Terms (linked pre-auth on the Welcome screen) and again in
+  Profile → About → Safety. **`scripts/seed_review_account.py` also seeds a
+  second fixture account** (`sand_wedge_sam`) with a review on Torrey Pines
+  North and a comment on @demo_golfer's Pebble Beach activity, and follows it
+  from @demo_golfer, so a reviewer signed into @demo_golfer alone has content
+  from another user to report and block — @demo_golfer having nothing
+  reportable on screen is the likely cause of the 2026-08-20 Guideline 1.2
+  rejection (see below).
 - Contacts permission is optional; all features work without it except
-  "Find from contacts."
+  "Find from contacts." The pre-prompt button reads "Continue" (Guideline
+  5.1.1(iv) — must not read like it's granting the permission itself).
+
+### 2026-08-20 rejection — build 1.0 (6)
+
+Two issues, both addressed in build 1.0 (9):
+
+- **Guideline 5.1.1(iv)**: the contacts pre-prompt button read "Allow Contacts
+  Access." Changed to "Continue" (`ContactsMatchView.swift`).
+- **Guideline 1.2**: Apple couldn't verify the report/flag/block mechanisms.
+  The mechanisms were already implemented and server-enforced (see
+  `docs/handoff-2026-08-05.md` and `ModerationRepo.swift`) — the likely gap
+  was that @demo_golfer's account had no other user's content visible to
+  report, since the seeder only wrote the demo account's own data. Fixed by
+  seeding a companion account (above). Also added: a Safety page
+  (Profile → About → Safety), `block()` now also files a report (Apple
+  requires blocking to notify the developer, not just hide content locally),
+  and a small denylist-based content filter on review/comment/username
+  submission (`ContentFilter.swift`).
+- Before replying in Resolution Center: record the flows on a **physical
+  device** (Apple's requirement) — Terms visible pre-auth, flag a piece of
+  content, block a user and show their content vanish from the feed — and
+  attach it there, plus paste the link into App Review Information → Notes.
 ```
 
 

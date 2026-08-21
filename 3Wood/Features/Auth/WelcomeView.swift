@@ -27,7 +27,7 @@ struct WelcomeView: View {
                 .tint(Color.fairwayGreen)
 
                 Text("By continuing you agree to the [Terms](https://leon1224an-droid.github.io/3Wood/terms.html) and [Privacy Policy](https://leon1224an-droid.github.io/3Wood/privacy.html).")
-                    .font(.caption2)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
                     .tint(Color.fairwayGreen)
                     .multilineTextAlignment(.center)

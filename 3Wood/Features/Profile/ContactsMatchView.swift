@@ -45,7 +45,9 @@ struct ContactsMatchView: View {
             if hasContactsAccess {
                 resultsList
             } else if status == .notDetermined {
-                explainer(buttonTitle: "Allow Contacts Access") {
+                // Guideline 5.1.1(iv): the pre-prompt button must be neutral
+                // ("Continue"), not phrased as if it's granting the permission.
+                explainer(buttonTitle: "Continue") {
                     Task { await requestAccess() }
                 }
             } else { // .denied, .restricted

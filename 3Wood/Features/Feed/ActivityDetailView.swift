@@ -256,6 +256,10 @@ struct ActivityDetailView: View {
     private func send() async {
         let body = trimmedDraft
         guard !body.isEmpty else { return }
+        guard !ContentFilter.isObjectionable(body) else {
+            actionError = "That comment contains language we don't allow. Please revise it."
+            return
+        }
         isSending = true
         do {
             try await ActivityRepo.addComment(activityID: item.activityID, body: body)
