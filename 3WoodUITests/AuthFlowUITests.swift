@@ -244,6 +244,12 @@ final class AuthFlowUITests: XCTestCase {
         // field for the moment it takes the auth gate to swap screens.
         XCTAssertTrue(app.navigationBars["Welcome!"].waitForExistence(timeout: timeout),
                       "Signup did not reach the username setup screen")
+        // The save-password sheet is a separate process's window and can
+        // still be mid-appearance even after the app's own screen has
+        // already transitioned — the first dismiss call above can miss it
+        // if it shows up a beat late. Check again right at the point of the
+        // next tap, which is exactly where a late sheet blocks it.
+        dismissSavePasswordPrompt()
         let username = app.textFields["username"]
         tap(username, "Username field")
         username.typeText("probe\(Int.random(in: 100_000...999_999))")
