@@ -24,9 +24,15 @@ struct ExploreListsView: View {
                 }
             } else {
                 List(lists) { list in
-                    NavigationLink(value: Destination.list(list)) {
+                    // Button + router.push, not NavigationLink — ListCardRow
+                    // already draws its own trailing chevron, so
+                    // NavigationLink here would bolt on a second one.
+                    Button {
+                        router.push(.list(list))
+                    } label: {
                         ListCardRow(list: list, showOwner: true)
                     }
+                    .buttonStyle(.plain)
                     .listRowBackground(Color.clear)
                     .listRowSeparatorTint(Color.sand)
                 }

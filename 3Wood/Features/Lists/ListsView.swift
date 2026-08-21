@@ -281,13 +281,20 @@ struct ListsView: View {
         } else {
             List {
                 ForEach(myLists) { list in
+                    // Button + router.push, not NavigationLink — ListCardRow
+                    // already draws its own trailing chevron (matching
+                    // OtherProfileView's "Their courses" rows), so
+                    // NavigationLink here would bolt on a second one.
                     // my_lists() doesn't return owner_id/is_mine (every row is
                     // already the caller's own) — set it here so the detail
                     // screen's manage menu doesn't flash "Report" before its
                     // own reload() corrects it.
-                    NavigationLink(value: Destination.list(asMine(list))) {
+                    Button {
+                        nav.listsRouter.push(.list(asMine(list)))
+                    } label: {
                         ListCardRow(list: list)
                     }
+                    .buttonStyle(.plain)
                     .listRowBackground(Color.clear)
                     .listRowSeparatorTint(Color.sand)
                     .swipeActions(edge: .trailing) {

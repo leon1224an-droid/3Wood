@@ -261,5 +261,29 @@ struct LiveBackendTests {
         #expect(created.courseCount == 1)
         #expect(created.visibility == .private)
         #expect(created.description == nil)
+
+        // profile_public_lists and explore_lists share this row shape, and a
+        // prior bug (both omitted `visibility`, a non-optional CustomList
+        // field) made them throw a silent DecodingError with no automated
+        // test catching it — see 00240000000000_explore_lists_visibility_fix.
+        // Guard the shape directly rather than relying on manual QA again.
+        struct UpdateVisibilityBody: Encodable { let p_list_id: Int; let p_visibility: String }
+        let (updateData, updateStatus) = try await rest(
+            "POST", "rpc/update_list", token: token,
+            body: try JSONEncoder().encode(UpdateVisibilityBody(p_list_id: listID, p_visibility: "public"))
+        )
+        // update_list returns void, so PostgREST responds 204 No Content, not 200.
+        #expect(updateStatus == 204, "update_list failed: \(String(decoding: updateData, as: UTF8.self))")
+
+        struct UserIDBody: Encodable { let p_user_id: String }
+        let ownerID = try Self.subject(ofJWT: token)
+        let (publicData, publicStatus) = try await rest(
+            "POST", "rpc/profile_public_lists", token: token,
+            body: try JSONEncoder().encode(UserIDBody(p_user_id: ownerID))
+        )
+        #expect(publicStatus == 200, "profile_public_lists failed: \(String(decoding: publicData, as: UTF8.self))")
+        let publicLists = try supabaseDecoder().decode([CustomList].self, from: publicData)
+        let publicized = try #require(publicLists.first { $0.id == listID })
+        #expect(publicized.visibility == .public)
     }
 }
