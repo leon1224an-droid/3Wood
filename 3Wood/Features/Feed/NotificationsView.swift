@@ -68,12 +68,17 @@ struct NotificationsView: View {
                 case "mention":
                     Image(systemName: "at")
                         .foregroundStyle(Color.fairwayGreen)
-                case "list_like":
-                    Image(systemName: "heart.fill")
-                        .foregroundStyle(Color.clayRed)
+                case "list_bookmark":
+                    Image(systemName: "bookmark.fill")
+                        .foregroundStyle(Color.fairwayGreen)
                 case "list_comment":
                     Image(systemName: "text.bubble")
                         .foregroundStyle(Color.fairwayGreen)
+                case "comment_reply":
+                    Image(systemName: "arrowshape.turn.up.left.fill")
+                        .foregroundStyle(Color.fairwayGreen)
+                case "comment_reaction":
+                    Text(item.emoji ?? "👏")
                 default:
                     Image(systemName: "bubble.left")
                         .foregroundStyle(Color.fairwayGreen)
@@ -85,7 +90,8 @@ struct NotificationsView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(line(for: item))
                     .font(.subheadline)
-                if let body = item.commentBody, item.kind == "comment" || item.kind == "list_comment" {
+                if let body = item.commentBody,
+                   ["comment", "list_comment", "comment_reply", "comment_reaction"].contains(item.kind) {
                     Text(body)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -110,8 +116,10 @@ struct NotificationsView: View {
         case "reaction": "reacted to your round at \(course)"
         case "tag": "tagged you at \(course)"
         case "mention": "mentioned you in a comment"
-        case "list_like": "liked your list \"\(list)\""
+        case "list_bookmark": "bookmarked your list \"\(list)\""
         case "list_comment": "commented on your list \"\(list)\""
+        case "comment_reply": "replied to your comment"
+        case "comment_reaction": "reacted to your comment"
         default: "commented on your round at \(course)"
         }
         return actor + AttributedString(rest)
@@ -120,7 +128,8 @@ struct NotificationsView: View {
     /// Follows open the person; engagement opens the activity or list it
     /// happened on. List notifications carry no activityID, so this check
     /// must come before the "activityID == nil" fallback below, or every
-    /// list_like/list_comment would misroute to the actor's profile.
+    /// list_bookmark/list_comment (and comment_reply/comment_reaction on a
+    /// list comment) would misroute to the actor's profile.
     private func open(_ item: AppNotification) {
         if let listID = item.listID {
             router.push(.listID(listID))

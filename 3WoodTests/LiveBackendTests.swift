@@ -286,4 +286,145 @@ struct LiveBackendTests {
         let publicized = try #require(publicLists.first { $0.id == listID })
         #expect(publicized.visibility == .public)
     }
+
+    /// Bookmark replaced Like as the list engagement action (2026-08-21) —
+    /// list_likes was renamed to list_bookmarks in place, so a mismatch
+    /// between the RPC's actual column names (bookmark_count/
+    /// bookmarked_by_me) and CustomList's CodingKeys would throw a silent
+    /// DecodingError, same class of bug the visibility column already caused
+    /// once. Guard the rename directly rather than relying on manual QA.
+    @Test func listBookmarkRoundTripsAndAppearsInMyBookmarkedLists() async throws {
+        let token = try await accessToken()
+
+        let searched = try await callRPC("search_courses", body: ["p_query": "pebble beach"], token: token)
+        let course = try #require(
+            try JSONDecoder().decode([Course].self, from: searched).first { $0.name == "Pebble Beach Golf Links" }
+        )
+
+        // test1 needs its own list to bookmark that isn't already its own —
+        // bookmarking is meant for someone else's public list, so create one
+        // as test1, publish it, then bookmark it as the same account (the
+        // RPC doesn't forbid self-bookmark; this only exercises the toggle
+        // and decode path, not the social angle).
+        struct CreateBody: Encodable { let p_title: String; let p_visibility: String }
+        let (createData, createStatus) = try await rest(
+            "POST", "rpc/create_list", token: token,
+            body: try JSONEncoder().encode(CreateBody(p_title: "Bookmark Test List", p_visibility: "public"))
+        )
+        #expect(createStatus == 200, "create_list failed: \(String(decoding: createData, as: UTF8.self))")
+        let listID = try JSONDecoder().decode(Int.self, from: createData)
+
+        defer {
+            Task {
+                struct DeleteBody: Encodable { let p_list_id: Int }
+                _ = try? await rest(
+                    "POST", "rpc/delete_list", token: token,
+                    body: try JSONEncoder().encode(DeleteBody(p_list_id: listID))
+                )
+            }
+        }
+
+        struct AddBody: Encodable { let p_list_id: Int; let p_course_ids: [Int] }
+        _ = try await rest(
+            "POST", "rpc/add_courses_to_list", token: token,
+            body: try JSONEncoder().encode(AddBody(p_list_id: listID, p_course_ids: [course.id]))
+        )
+
+        struct BookmarkBody: Encodable { let p_list_id: Int }
+        let (bookmarkData, bookmarkStatus) = try await rest(
+            "POST", "rpc/toggle_list_bookmark", token: token,
+            body: try JSONEncoder().encode(BookmarkBody(p_list_id: listID))
+        )
+        #expect(bookmarkStatus == 204, "toggle_list_bookmark failed: \(String(decoding: bookmarkData, as: UTF8.self))")
+
+        let (savedData, savedStatus) = try await rest(
+            "POST", "rpc/my_bookmarked_lists", token: token, body: Data("{}".utf8)
+        )
+        #expect(savedStatus == 200, "my_bookmarked_lists failed: \(String(decoding: savedData, as: UTF8.self))")
+        let saved = try supabaseDecoder().decode([CustomList].self, from: savedData)
+        let bookmarked = try #require(saved.first { $0.id == listID })
+        #expect(bookmarked.bookmarkCount == 1)
+        #expect(bookmarked.bookmarkedByMe == true)
+
+        // Toggling again removes it — same race-safe delete-then-insert
+        // pattern as toggle_reaction, verified end to end here.
+        _ = try await rest(
+            "POST", "rpc/toggle_list_bookmark", token: token,
+            body: try JSONEncoder().encode(BookmarkBody(p_list_id: listID))
+        )
+        let (afterData, _) = try await rest(
+            "POST", "rpc/my_bookmarked_lists", token: token, body: Data("{}".utf8)
+        )
+        let afterUnbookmark = try supabaseDecoder().decode([CustomList].self, from: afterData)
+        #expect(!afterUnbookmark.contains { $0.id == listID })
+    }
+
+    /// Replies and reactions on comments (2026-08-21) — list_comments and
+    /// activity_comments are deliberately kept byte-identical in shape so
+    /// ActivityComment decodes both; this guards that symmetry (parent_
+    /// comment_id, reactions) directly against the live RPC rather than
+    /// trusting the migration's comment that they match.
+    @Test func listCommentReplyAndReactionRoundTrip() async throws {
+        let token = try await accessToken()
+
+        struct CreateBody: Encodable { let p_title: String }
+        let (createData, _) = try await rest(
+            "POST", "rpc/create_list", token: token,
+            body: try JSONEncoder().encode(CreateBody(p_title: "Comment Thread Test List"))
+        )
+        let listID = try JSONDecoder().decode(Int.self, from: createData)
+
+        defer {
+            Task {
+                struct DeleteBody: Encodable { let p_list_id: Int }
+                _ = try? await rest(
+                    "POST", "rpc/delete_list", token: token,
+                    body: try JSONEncoder().encode(DeleteBody(p_list_id: listID))
+                )
+            }
+        }
+
+        struct AddCommentBody: Encodable { let p_list_id: Int; let p_body: String }
+        let (topData, topStatus) = try await rest(
+            "POST", "rpc/add_list_comment", token: token,
+            body: try JSONEncoder().encode(AddCommentBody(p_list_id: listID, p_body: "Top-level comment"))
+        )
+        #expect(topStatus == 200, "add_list_comment failed: \(String(decoding: topData, as: UTF8.self))")
+        let topCommentID = try JSONDecoder().decode(Int.self, from: topData)
+
+        struct ReplyBody: Encodable { let p_list_id: Int; let p_body: String; let p_parent_comment_id: Int }
+        let (replyData, replyStatus) = try await rest(
+            "POST", "rpc/add_list_comment", token: token,
+            body: try JSONEncoder().encode(ReplyBody(
+                p_list_id: listID, p_body: "A reply", p_parent_comment_id: topCommentID
+            ))
+        )
+        #expect(replyStatus == 200, "add_list_comment (reply) failed: \(String(decoding: replyData, as: UTF8.self))")
+        let replyCommentID = try JSONDecoder().decode(Int.self, from: replyData)
+
+        struct ReactBody: Encodable { let p_comment_id: Int; let p_emoji: String }
+        let (reactData, reactStatus) = try await rest(
+            "POST", "rpc/toggle_list_comment_reaction", token: token,
+            body: try JSONEncoder().encode(ReactBody(p_comment_id: topCommentID, p_emoji: "🔥"))
+        )
+        #expect(reactStatus == 204, "toggle_list_comment_reaction failed: \(String(decoding: reactData, as: UTF8.self))")
+
+        struct ListIDBody: Encodable { let p_list_id: Int }
+        let (commentsData, commentsStatus) = try await rest(
+            "POST", "rpc/list_comments", token: token,
+            body: try JSONEncoder().encode(ListIDBody(p_list_id: listID))
+        )
+        #expect(commentsStatus == 200, "list_comments failed: \(String(decoding: commentsData, as: UTF8.self))")
+        let comments = try supabaseDecoder().decode([ActivityComment].self, from: commentsData)
+
+        let top = try #require(comments.first { $0.id == topCommentID })
+        #expect(top.parentCommentID == nil)
+        #expect(top.reactions.count == 1)
+        #expect(top.reactions.first?.emoji == "🔥")
+        #expect(top.reactions.first?.mine == true)
+
+        let reply = try #require(comments.first { $0.id == replyCommentID })
+        #expect(reply.parentCommentID == topCommentID)
+        #expect(reply.reactions.isEmpty)
+    }
 }

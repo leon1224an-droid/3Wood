@@ -8,12 +8,36 @@ struct ActivityComment: Codable, Identifiable, Hashable, Sendable {
     let body: String
     let createdAt: Date
     let isMine: Bool
+    /// Nil for a top-level comment. One level deep only — a reply can't
+    /// itself be replied to.
+    var parentCommentID: Int?
+    var reactions: [ReactionSummary] = []
 
     enum CodingKeys: String, CodingKey {
-        case id, username, body
+        case id, username, body, reactions
         case userID = "user_id"
         case createdAt = "created_at"
         case isMine = "is_mine"
+        case parentCommentID = "parent_comment_id"
+    }
+
+    /// Applies a reaction tap locally so the chip row moves before the
+    /// network answers. Mirrors FeedItem.applyToggle, scoped to a comment.
+    mutating func applyReactionToggle(_ emoji: String) {
+        if let i = reactions.firstIndex(where: { $0.emoji == emoji }) {
+            let chip = reactions[i]
+            if chip.mine {
+                if chip.count <= 1 {
+                    reactions.remove(at: i)
+                } else {
+                    reactions[i] = ReactionSummary(emoji: emoji, count: chip.count - 1, mine: false)
+                }
+            } else {
+                reactions[i] = ReactionSummary(emoji: emoji, count: chip.count + 1, mine: true)
+            }
+        } else {
+            reactions.append(ReactionSummary(emoji: emoji, count: 1, mine: true))
+        }
     }
 }
 
@@ -21,7 +45,9 @@ struct ActivityComment: Codable, Identifiable, Hashable, Sendable {
 /// activity or a list of yours.
 struct AppNotification: Codable, Identifiable, Hashable, Sendable {
     let id: Int
-    let kind: String            // "follow" | "comment" | "reaction" | "tag" | "mention" | "list_like" | "list_comment"
+    // "follow" | "comment" | "reaction" | "tag" | "mention" | "list_bookmark" |
+    // "list_comment" | "comment_reply" | "comment_reaction"
+    let kind: String
     let actorID: UUID
     let actorUsername: String
     let activityID: Int?

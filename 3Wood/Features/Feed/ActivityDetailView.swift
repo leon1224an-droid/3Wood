@@ -13,6 +13,7 @@ struct ActivityDetailView: View {
     @State private var isSending = false
     @State private var actionError: String?
     @State private var reportedComment: ActivityComment?
+    @State private var replyingTo: ActivityComment?
     @FocusState private var composerFocused: Bool
 
     init(item: FeedItem) {
@@ -124,84 +125,59 @@ struct ActivityDetailView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         } else {
-            VStack(alignment: .leading, spacing: 12) {
-                ForEach(comments) { comment in
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            if comment.isMine {
-                                Text("@\(comment.username)")
-                                    .font(.subheadline.weight(.semibold))
-                            } else {
-                                Button {
-                                    router.push(.person(ProfileSummary(
-                                        id: comment.userID, username: comment.username,
-                                        displayName: nil, isFollowing: false
-                                    )))
-                                } label: {
-                                    Text("@\(comment.username)")
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(.primary)
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityHint("Opens profile")
-                            }
-                            Spacer()
-                            Text(comment.createdAt.formatted(.relative(presentation: .named)))
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                            // Visible, not long-press-only. Delete and report
-                            // lived solely in a context menu, which is the same
-                            // reason "can't delete photos" got reported.
-                            Menu {
-                                if comment.isMine {
-                                    Button("Delete", systemImage: "trash", role: .destructive) {
-                                        Task { await delete(comment) }
-                                    }
-                                } else {
-                                    Button("Report comment", systemImage: "flag") {
-                                        reportedComment = comment
-                                    }
-                                }
-                            } label: {
-                                Image(systemName: "ellipsis")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                                    .frame(width: 44, height: 44)
-                                    .contentShape(Rectangle())
-                            }
-                            .accessibilityLabel(comment.isMine
-                                                ? "Comment actions"
-                                                : "Report @\(comment.username)'s comment")
-                        }
-                        Text(comment.body).font(.subheadline)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-                    .card()
-                    .contextMenu {
-                        if comment.isMine {
-                            Button("Delete", systemImage: "trash", role: .destructive) {
-                                Task { await delete(comment) }
-                            }
-                        } else {
-                            Button("Report comment", systemImage: "flag") {
-                                reportedComment = comment
-                            }
-                        }
-                    }
+            CommentThreadView(
+                comments: comments,
+                onReact: { comment, emoji in await react(comment, emoji: emoji) },
+                onReply: { comment in
+                    replyingTo = comment
+                    composerFocused = true
+                },
+                onDelete: { comment in Task { await delete(comment) } },
+                onReport: { comment in reportedComment = comment },
+                onTapUser: { comment in
+                    router.push(.person(ProfileSummary(
+                        id: comment.userID, username: comment.username,
+                        displayName: nil, isFollowing: false
+                    )))
                 }
-            }
+            )
         }
     }
 
     private var composer: some View {
         VStack(spacing: 0) {
             Rectangle().fill(Color.sand).frame(height: 1)
+            if let replyingTo {
+                HStack {
+                    Text("Replying to @\(replyingTo.username)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button {
+                        self.replyingTo = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.tertiary)
+                    }
+                    .accessibilityLabel("Cancel reply")
+                }
+                .padding(.horizontal)
+                .padding(.top, 8)
+            }
             HStack(spacing: 10) {
+                // A stronger visual treatment than a bare TextField — it was
+                // reading as page chrome rather than something tappable.
                 TextField("Add a comment", text: $draft, axis: .vertical)
                     .lineLimit(1...4)
                     .focused($composerFocused)
                     .submitLabel(.send)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(Color.sand.opacity(0.5), in: RoundedRectangle(cornerRadius: 18))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18)
+                            .strokeBorder(composerFocused ? Color.fairwayGreen : Color.sand, lineWidth: 1.5)
+                    )
                 Button {
                     Task { await send() }
                 } label: {
@@ -262,8 +238,11 @@ struct ActivityDetailView: View {
         }
         isSending = true
         do {
-            try await ActivityRepo.addComment(activityID: item.activityID, body: body)
+            try await ActivityRepo.addComment(
+                activityID: item.activityID, body: body, parentCommentID: replyingTo?.id
+            )
             draft = ""
+            replyingTo = nil
             composerFocused = false
             await reload()
             NotificationCenter.default.post(name: .activityChanged, object: item.activityID)
@@ -280,6 +259,19 @@ struct ActivityDetailView: View {
             NotificationCenter.default.post(name: .activityChanged, object: item.activityID)
         } catch {
             actionError = "Couldn't delete that comment. \(error.localizedDescription)"
+        }
+    }
+
+    private func react(_ comment: ActivityComment, emoji: String) async {
+        guard let index = comments.firstIndex(where: { $0.id == comment.id }) else { return }
+        // Move first, same reasoning as `toggle(_:)` above for the activity's
+        // own reaction bar.
+        comments[index].applyReactionToggle(emoji)
+        do {
+            try await ActivityRepo.toggleCommentReaction(commentID: comment.id, emoji: emoji)
+        } catch {
+            comments[index].applyReactionToggle(emoji)
+            actionError = "Couldn't save that reaction. \(error.localizedDescription)"
         }
     }
 

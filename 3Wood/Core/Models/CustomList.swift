@@ -17,9 +17,9 @@ struct CustomList: Codable, Identifiable, Hashable, Sendable {
     var ownerID: UUID?
     var ownerUsername: String?
     var isMine: Bool?
-    var likedByMe: Bool?
+    var bookmarkedByMe: Bool?
     var courseCount: Int
-    var likeCount: Int
+    var bookmarkCount: Int
     var commentCount: Int
     var createdAt: Date?
     var updatedAt: Date
@@ -29,9 +29,9 @@ struct CustomList: Codable, Identifiable, Hashable, Sendable {
         case ownerID = "owner_id"
         case ownerUsername = "owner_username"
         case isMine = "is_mine"
-        case likedByMe = "liked_by_me"
+        case bookmarkedByMe = "bookmarked_by_me"
         case courseCount = "course_count"
-        case likeCount = "like_count"
+        case bookmarkCount = "bookmark_count"
         case commentCount = "comment_count"
         case createdAt = "created_at"
         case updatedAt = "updated_at"

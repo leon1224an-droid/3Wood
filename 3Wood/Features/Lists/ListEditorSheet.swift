@@ -123,7 +123,7 @@ struct ListEditorSheet: View {
                     id: id, title: trimmedTitle,
                     description: trimmedDescription.isEmpty ? nil : trimmedDescription,
                     visibility: visibility, ownerID: nil, ownerUsername: nil,
-                    isMine: true, likedByMe: false, courseCount: 0, likeCount: 0,
+                    isMine: true, bookmarkedByMe: false, courseCount: 0, bookmarkCount: 0,
                     commentCount: 0, createdAt: Date(), updatedAt: Date()
                 ))
             }

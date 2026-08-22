@@ -5,6 +5,7 @@ struct ListsView: View {
         case played = "Played"
         case wantToPlay = "Want to Play"
         case myLists = "My Lists"
+        case saved = "Saved"
         var id: String { rawValue }
     }
 
@@ -21,6 +22,7 @@ struct ListsView: View {
     @State private var ranked: [RankedCourse] = []
     @State private var wantToPlay: [Course] = []
     @State private var myLists: [CustomList] = []
+    @State private var savedLists: [CustomList] = []
     @State private var isLoggingCourse = false
     @State private var isAddingWantToPlay = false
     @State private var isCreatingList = false
@@ -40,6 +42,7 @@ struct ListsView: View {
                 case .played: playedList
                 case .wantToPlay: wantToPlayList
                 case .myLists: myListsSection
+                case .saved: savedListsSection
                 }
             }
             .creamScreen()
@@ -57,7 +60,7 @@ struct ListsView: View {
                         .accessibilityLabel("Sort courses")
                     }
                 }
-                if segment == .myLists {
+                if segment == .myLists || segment == .saved {
                     ToolbarItem(placement: .topBarLeading) {
                         Button {
                             router.push(.exploreLists)
@@ -69,7 +72,8 @@ struct ListsView: View {
                     }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    if segment == .myLists {
+                    switch segment {
+                    case .myLists:
                         Button {
                             isCreatingList = true
                         } label: {
@@ -77,7 +81,9 @@ struct ListsView: View {
                         }
                         .accessibilityLabel("New list")
                         .accessibilityIdentifier("newListButton")
-                    } else {
+                    case .saved:
+                        EmptyView()
+                    case .played, .wantToPlay:
                         // Both lists are added to from here. Logging used to be
                         // the only thing "+" did, which left Want to Play
                         // reachable only from a course's own page.
@@ -319,6 +325,49 @@ struct ListsView: View {
         }
     }
 
+    @ViewBuilder
+    private var savedListsSection: some View {
+        if savedLists.isEmpty {
+            if loadFailed {
+                LoadFailedView { await reload() }
+            } else if hasLoaded {
+                ContentUnavailableView {
+                    Label("Nothing saved yet", systemImage: "bookmark")
+                } description: {
+                    Text("Bookmark a public list to find it again here.")
+                } actions: {
+                    Button("Explore public lists") { nav.listsRouter.push(.exploreLists) }
+                        .buttonStyle(.borderedProminent)
+                }
+            } else {
+                ProgressView().frame(maxHeight: .infinity)
+            }
+        } else {
+            List {
+                ForEach(savedLists) { list in
+                    // Button + router.push, not NavigationLink — same
+                    // double-chevron reasoning as myListsSection above.
+                    Button {
+                        nav.listsRouter.push(.list(list))
+                    } label: {
+                        ListCardRow(list: list, showOwner: true)
+                    }
+                    .buttonStyle(.plain)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparatorTint(Color.sand)
+                    .swipeActions(edge: .trailing) {
+                        Button("Remove") {
+                            Task { await unbookmark(list) }
+                        }
+                        .tint(Color.clayRed)
+                    }
+                }
+            }
+            .listStyle(.plain)
+            .refreshable { await reload() }
+        }
+    }
+
     /// "Played 12 Mar 2026" — with a round count once there's more than one.
     private func playedLine(for course: RankedCourse, on played: String) -> String {
         let date = PlayDate.display(played)
@@ -338,6 +387,7 @@ struct ListsView: View {
         async let rankedTask = RankingRepo.myRankedCourses()
         async let wantTask = WantToPlayRepo.list()
         async let listsTask = ListsRepo.myLists()
+        async let savedTask = ListsRepo.myBookmarkedLists()
         // Independent try?s, not one do/catch — a failure on any one segment
         // (e.g. My Lists) must not abort the others before they're assigned.
         // A shared `do` here previously meant a Played-tab failure could
@@ -345,12 +395,14 @@ struct ListsView: View {
         let newRanked = try? await rankedTask
         let newWantToPlay = try? await wantTask
         let newMyLists = try? await listsTask
+        let newSaved = try? await savedTask
         if let newRanked { ranked = newRanked }
         if let newWantToPlay { wantToPlay = newWantToPlay }
         if let newMyLists { myLists = newMyLists }
+        if let newSaved { savedLists = newSaved }
         // Keep whatever was already on screen; only flag when there's
         // nothing to show instead.
-        loadFailed = ranked.isEmpty && wantToPlay.isEmpty && myLists.isEmpty
+        loadFailed = ranked.isEmpty && wantToPlay.isEmpty && myLists.isEmpty && savedLists.isEmpty
         hasLoaded = true
     }
 
@@ -366,6 +418,16 @@ struct ListsView: View {
             myLists.removeAll { $0.id == list.id }
         } catch {
             actionError = "Couldn't delete \"\(list.title)\". \(error.localizedDescription)"
+        }
+    }
+
+    private func unbookmark(_ list: CustomList) async {
+        savedLists.removeAll { $0.id == list.id }
+        do {
+            try await ListsRepo.toggleBookmark(listID: list.id)
+        } catch {
+            actionError = "Couldn't remove \"\(list.title)\" from Saved. \(error.localizedDescription)"
+            await reload()
         }
     }
 

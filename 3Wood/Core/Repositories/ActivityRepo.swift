@@ -20,17 +20,31 @@ enum ActivityRepo {
             .value
     }
 
-    static func addComment(activityID: Int, body: String) async throws {
+    static func addComment(activityID: Int, body: String, parentCommentID: Int? = nil) async throws {
         struct Params: Encodable {
             let p_activity_id: Int
             let p_body: String
+            let p_parent_comment_id: Int?
         }
-        try await supa.rpc("add_comment", params: Params(p_activity_id: activityID, p_body: body))
-            .execute()
+        try await supa.rpc("add_comment", params: Params(
+            p_activity_id: activityID, p_body: body, p_parent_comment_id: parentCommentID
+        )).execute()
     }
 
     static func deleteComment(id: Int) async throws {
         try await supa.from("activity_comments").delete().eq("id", value: id).execute()
+    }
+
+    /// One tap toggles the caller's own presence in that emoji's chip —
+    /// mirrors toggleReaction, scoped to a comment instead of an activity.
+    static func toggleCommentReaction(commentID: Int, emoji: String) async throws {
+        struct Params: Encodable {
+            let p_comment_id: Int
+            let p_emoji: String
+        }
+        try await supa.rpc("toggle_activity_comment_reaction",
+                           params: Params(p_comment_id: commentID, p_emoji: emoji))
+            .execute()
     }
 
     static func notifications() async throws -> [AppNotification] {

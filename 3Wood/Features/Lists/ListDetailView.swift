@@ -21,6 +21,7 @@ struct ListDetailView: View {
     @State private var isConfirmingDelete = false
     @State private var isReportingList = false
     @State private var reportedComment: ActivityComment?
+    @State private var replyingTo: ActivityComment?
     @State private var shareImage: UIImage?
     @FocusState private var composerFocused: Bool
 
@@ -137,11 +138,12 @@ struct ListDetailView: View {
                     .font(.subheadline)
             }
             HStack(spacing: 20) {
-                Button { Task { await toggleLike() } } label: {
-                    Label("\(live.likeCount)", systemImage: (live.likedByMe ?? false) ? "heart.fill" : "heart")
+                Button { Task { await toggleBookmark() } } label: {
+                    Label("\(live.bookmarkCount)",
+                          systemImage: (live.bookmarkedByMe ?? false) ? "bookmark.fill" : "bookmark")
                 }
-                .foregroundStyle((live.likedByMe ?? false) ? Color.clayRed : .secondary)
-                .accessibilityIdentifier("listLikeButton")
+                .foregroundStyle((live.bookmarkedByMe ?? false) ? Color.fairwayGreen : .secondary)
+                .accessibilityIdentifier("listBookmarkButton")
 
                 Label("\(live.commentCount)", systemImage: "text.bubble")
                     .foregroundStyle(.secondary)
@@ -220,55 +222,22 @@ struct ListDetailView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
-                VStack(alignment: .leading, spacing: 12) {
-                    ForEach(comments) { comment in
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                if comment.isMine {
-                                    Text("@\(comment.username)")
-                                        .font(.subheadline.weight(.semibold))
-                                } else {
-                                    Button {
-                                        router.push(.person(ProfileSummary(
-                                            id: comment.userID, username: comment.username,
-                                            displayName: nil, isFollowing: false
-                                        )))
-                                    } label: {
-                                        Text("@\(comment.username)")
-                                            .font(.subheadline.weight(.semibold))
-                                            .foregroundStyle(.primary)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                                Spacer()
-                                Text(comment.createdAt.formatted(.relative(presentation: .named)))
-                                    .font(.caption)
-                                    .foregroundStyle(.tertiary)
-                                Menu {
-                                    if comment.isMine {
-                                        Button("Delete", systemImage: "trash", role: .destructive) {
-                                            Task { await delete(comment) }
-                                        }
-                                    } else {
-                                        Button("Report comment", systemImage: "flag") {
-                                            reportedComment = comment
-                                        }
-                                    }
-                                } label: {
-                                    Image(systemName: "ellipsis")
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                        .frame(width: 44, height: 44)
-                                        .contentShape(Rectangle())
-                                }
-                                .accessibilityLabel(comment.isMine
-                                                    ? "Comment actions"
-                                                    : "Report @\(comment.username)'s comment")
-                            }
-                            Text(comment.body).font(.subheadline)
-                        }
+                CommentThreadView(
+                    comments: comments,
+                    onReact: { comment, emoji in await react(comment, emoji: emoji) },
+                    onReply: { comment in
+                        replyingTo = comment
+                        composerFocused = true
+                    },
+                    onDelete: { comment in Task { await delete(comment) } },
+                    onReport: { comment in reportedComment = comment },
+                    onTapUser: { comment in
+                        router.push(.person(ProfileSummary(
+                            id: comment.userID, username: comment.username,
+                            displayName: nil, isFollowing: false
+                        )))
                     }
-                }
+                )
             }
         }
     }
@@ -276,11 +245,37 @@ struct ListDetailView: View {
     private var composer: some View {
         VStack(spacing: 0) {
             Rectangle().fill(Color.sand).frame(height: 1)
+            if let replyingTo {
+                HStack {
+                    Text("Replying to @\(replyingTo.username)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button {
+                        self.replyingTo = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.tertiary)
+                    }
+                    .accessibilityLabel("Cancel reply")
+                }
+                .padding(.horizontal)
+                .padding(.top, 8)
+            }
             HStack(spacing: 10) {
+                // A stronger visual treatment than a bare TextField — it was
+                // reading as page chrome rather than something tappable.
                 TextField("Add a comment", text: $draft, axis: .vertical)
                     .lineLimit(1...4)
                     .focused($composerFocused)
                     .submitLabel(.send)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(Color.sand.opacity(0.5), in: RoundedRectangle(cornerRadius: 18))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18)
+                            .strokeBorder(composerFocused ? Color.fairwayGreen : Color.sand, lineWidth: 1.5)
+                    )
                     .accessibilityIdentifier("listCommentField")
                 Button {
                     Task { await send() }
@@ -350,17 +345,17 @@ struct ListDetailView: View {
         isLoading = false
     }
 
-    private func toggleLike() async {
-        // Move first — waiting on the network to light the heart feels broken,
+    private func toggleBookmark() async {
+        // Move first — waiting on the network to fill the icon feels broken,
         // same reasoning as FeedView.react.
-        let wasLiked = live.likedByMe ?? false
-        live.likedByMe = !wasLiked
-        live.likeCount += wasLiked ? -1 : 1
+        let wasBookmarked = live.bookmarkedByMe ?? false
+        live.bookmarkedByMe = !wasBookmarked
+        live.bookmarkCount += wasBookmarked ? -1 : 1
         do {
-            try await ListsRepo.toggleLike(listID: live.id)
+            try await ListsRepo.toggleBookmark(listID: live.id)
         } catch {
-            live.likedByMe = wasLiked
-            live.likeCount += wasLiked ? 1 : -1
+            live.bookmarkedByMe = wasBookmarked
+            live.bookmarkCount += wasBookmarked ? 1 : -1
             actionError = "Couldn't save that. \(error.localizedDescription)"
         }
     }
@@ -406,8 +401,9 @@ struct ListDetailView: View {
         }
         isSending = true
         do {
-            try await ListsRepo.addComment(listID: live.id, body: body)
+            try await ListsRepo.addComment(listID: live.id, body: body, parentCommentID: replyingTo?.id)
             draft = ""
+            replyingTo = nil
             composerFocused = false
             await reload()
         } catch {
@@ -419,10 +415,25 @@ struct ListDetailView: View {
     private func delete(_ comment: ActivityComment) async {
         do {
             try await ListsRepo.deleteComment(id: comment.id)
-            comments.removeAll { $0.id == comment.id }
+            // A deleted parent cascades its replies server-side; strip them
+            // locally too so the thread doesn't show orphaned replies until
+            // the next reload.
+            comments.removeAll { $0.id == comment.id || $0.parentCommentID == comment.id }
             live.commentCount = comments.count
         } catch {
             actionError = "Couldn't delete that comment. \(error.localizedDescription)"
+        }
+    }
+
+    private func react(_ comment: ActivityComment, emoji: String) async {
+        guard let index = comments.firstIndex(where: { $0.id == comment.id }) else { return }
+        // Move first, same reasoning as FeedView.react and ActivityDetailView.toggle.
+        comments[index].applyReactionToggle(emoji)
+        do {
+            try await ListsRepo.toggleCommentReaction(commentID: comment.id, emoji: emoji)
+        } catch {
+            comments[index].applyReactionToggle(emoji)
+            actionError = "Couldn't save that reaction. \(error.localizedDescription)"
         }
     }
 

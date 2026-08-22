@@ -26,7 +26,7 @@ struct ListCardRow: View {
                 }
                 HStack(spacing: 10) {
                     metric("flag.checkered", "\(list.courseCount)")
-                    metric("heart", "\(list.likeCount)")
+                    metric("bookmark", "\(list.bookmarkCount)")
                     metric("text.bubble", "\(list.commentCount)")
                 }
                 .font(.caption)

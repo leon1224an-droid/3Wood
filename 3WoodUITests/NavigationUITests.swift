@@ -616,4 +616,75 @@ final class NavigationUITests: XCTestCase {
                        "Deleted list still visible")
         snapshot("45-MyLists-AfterDelete")
     }
+
+    /// Bookmark (replaces Like on lists), comment reactions, one-level
+    /// replies, and the Saved segment — the 2026-08-21 addition on top of
+    /// Custom Lists. Bookmarking your own list is unusual in practice but
+    /// exercises the same toggle/decode path as bookmarking someone else's.
+    func testListBookmarkCommentReactionAndReply() {
+        ensureSignedInAsDemo()
+        switchToTab("Lists")
+        tap(app.buttons["My Lists"], "My Lists segment")
+
+        tap(app.buttons["newListButton"], "New list")
+        clearAndType(app.textFields["listTitleField"], "Bookmark UI Test List")
+        app.buttons["Public"].tap()
+        tap(app.buttons["saveListButton"], "Save")
+
+        _ = app.staticTexts["Bookmark UI Test List"].waitForExistence(timeout: timeout)
+        tap(app.staticTexts["Bookmark UI Test List"], "Bookmark UI Test List row")
+        XCTAssertTrue(app.navigationBars["Bookmark UI Test List"].waitForExistence(timeout: timeout))
+
+        tap(app.buttons["listBookmarkButton"], "Bookmark button")
+        XCTAssertTrue(app.buttons["listBookmarkButton"].label == "1",
+                      "Bookmark count did not move to 1")
+        snapshot("50-ListDetail-Bookmarked")
+
+        let field = app.textFields["Add a comment"]
+        tap(field, "Comment field")
+        field.typeText("Top-level UI test comment")
+        app.buttons["Send comment"].tap()
+        XCTAssertTrue(app.staticTexts["Top-level UI test comment"].waitForExistence(timeout: timeout),
+                      "Top-level comment did not appear")
+
+        tap(app.buttons["Add a reaction"], "Add reaction menu")
+        app.buttons["⛳  Nice track"].tap()
+        XCTAssertTrue(app.buttons["Nice track, 1"].waitForExistence(timeout: timeout),
+                      "Reaction chip did not appear on the comment")
+        snapshot("51-ListDetail-CommentReaction")
+
+        tap(app.buttons["Comment actions"], "Comment actions menu")
+        app.buttons["Reply"].tap()
+        XCTAssertTrue(
+            app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Replying to'")).firstMatch
+                .waitForExistence(timeout: timeout),
+            "Replying-to banner did not appear"
+        )
+        field.typeText("A reply")
+        app.buttons["Send comment"].tap()
+        XCTAssertTrue(app.staticTexts["A reply"].waitForExistence(timeout: timeout),
+                      "Reply did not appear in the thread")
+        snapshot("52-ListDetail-CommentReply")
+
+        tap(app.buttons["BackButton"], "Back to My Courses")
+        tap(app.buttons["Saved"], "Saved segment")
+        XCTAssertTrue(app.staticTexts["Bookmark UI Test List"].waitForExistence(timeout: timeout),
+                      "Bookmarked list did not appear in Saved")
+        snapshot("53-Saved-Segment")
+
+        // Cleanup: unbookmark, then delete the list from My Lists. Swipe the
+        // row by its own text, not app.cells.firstMatch — My Lists' list
+        // has an "Explore public lists" banner row ahead of the list rows,
+        // which app.cells.firstMatch would hit instead.
+        app.staticTexts["Bookmark UI Test List"].swipeLeft()
+        app.buttons["Remove"].tap()
+        XCTAssertFalse(app.staticTexts["Bookmark UI Test List"].waitForExistence(timeout: 3),
+                       "List still visible in Saved after unbookmarking")
+
+        tap(app.buttons["My Lists"], "My Lists segment")
+        _ = app.staticTexts["Bookmark UI Test List"].waitForExistence(timeout: timeout)
+        app.staticTexts["Bookmark UI Test List"].swipeLeft()
+        app.buttons["Delete"].tap()
+        tap(app.buttons["Delete list"], "Confirm delete list")
+    }
 }
