@@ -595,8 +595,8 @@ final class NavigationUITests: XCTestCase {
         let editTitleField = app.textFields["listTitleField"]
         clearAndType(editTitleField, "Renamed UI Test List")
 
-        // Toggle to public while the sheet is open.
-        tap(app.buttons["listVisibilityPicker"], "Visibility picker")
+        // Toggle to public while the sheet is open. Segmented style, so
+        // "Public" is tappable directly — no push-to-detail row to open first.
         tap(app.buttons["Public"], "Public option")
 
         tap(app.buttons["saveListButton"], "Save edited list")

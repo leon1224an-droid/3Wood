@@ -59,6 +59,11 @@ struct ListEditorSheet: View {
                         Text("Private").tag(CustomList.Visibility.private)
                         Text("Public").tag(CustomList.Visibility.public)
                     }
+                    // Default Picker style in a Form pushes to a separate
+                    // screen, which buries the public/private choice enough
+                    // that it's easy to never notice it's there. Segmented
+                    // keeps it inline and visible at a glance.
+                    .pickerStyle(.segmented)
                     .accessibilityIdentifier("listVisibilityPicker")
                 } footer: {
                     Text(visibility == .public

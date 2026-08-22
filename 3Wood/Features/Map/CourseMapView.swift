@@ -1,5 +1,6 @@
 import SwiftUI
 import MapKit
+import CoreLocation
 
 /// Broad course-type buckets over the messy free-text `course_type` field.
 enum CourseTypeFilter: String, CaseIterable, Identifiable {
@@ -46,6 +47,8 @@ struct CourseMapView: View {
     @State private var citySearch = ""
     @State private var isSearchPresented = false
     @State private var hasCenteredOnUser = false
+    @State private var isLocating = false
+    @State private var locationAlert: String?
     @State private var position: MapCameraPosition = .region(
         MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: 39.8, longitude: -98.6),
@@ -186,11 +189,21 @@ struct CourseMapView: View {
             }
         }
         .mapControls {
-            MapUserLocationButton()
             MapCompass()
         }
         .onMapCameraChange(frequency: .onEnd) { context in
             viewModel.regionChanged(context.region)
+        }
+        .overlay(alignment: .bottomTrailing) {
+            locateMeButton.padding()
+        }
+        .alert("Can't find your location", isPresented: .init(
+            get: { locationAlert != nil },
+            set: { if !$0 { locationAlert = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(locationAlert ?? "")
         }
         .overlay(alignment: .top) {
             VStack(spacing: 6) {
@@ -233,6 +246,48 @@ struct CourseMapView: View {
                     .foregroundStyle(Color.fairwayGreen)
             }
         }
+    }
+
+    /// Apple's own MapUserLocationButton has no timeout or fallback — with
+    /// Location Services off system-wide it just spins forever with no way
+    /// out. Routing through LocationProvider instead reuses the watchdog
+    /// that already exists for the initial-load centering below, and gives
+    /// the off/denied case a real message instead of an endless spinner.
+    private var locateMeButton: some View {
+        Button {
+            Task { await locateMe() }
+        } label: {
+            Group {
+                if isLocating {
+                    ProgressView()
+                } else {
+                    Image(systemName: "location.fill")
+                }
+            }
+            .frame(width: 44, height: 44)
+            .background(.thinMaterial, in: Circle())
+        }
+        .disabled(isLocating)
+        .accessibilityLabel("Find my location")
+    }
+
+    private func locateMe() async {
+        guard CLLocationManager.locationServicesEnabled() else {
+            locationAlert = "Location Services are turned off for this device. Turn them on in Settings to find your location."
+            return
+        }
+        isLocating = true
+        defer { isLocating = false }
+        guard let location = await LocationProvider.shared.currentLocation() else {
+            locationAlert = "3Wood doesn't have permission to use your location. Check Settings → Privacy → Location Services."
+            return
+        }
+        let region = MKCoordinateRegion(
+            center: location.coordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.35, longitudeDelta: 0.35)
+        )
+        withAnimation { position = .region(region) }
+        viewModel.regionChanged(region)
     }
 
     private var listView: some View {

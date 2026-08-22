@@ -274,12 +274,21 @@ struct ListsView: View {
                 } actions: {
                     Button("Create your first list") { isCreatingList = true }
                         .buttonStyle(.borderedProminent)
+                    Button("Explore public lists") { nav.listsRouter.push(.exploreLists) }
                 }
             } else {
                 ProgressView().frame(maxHeight: .infinity)
             }
         } else {
             List {
+                Section {
+                    Button {
+                        nav.listsRouter.push(.exploreLists)
+                    } label: {
+                        Label("Explore public lists", systemImage: "sparkle.magnifyingglass")
+                    }
+                    .listRowBackground(Color.clear)
+                }
                 ForEach(myLists) { list in
                     // Button + router.push, not NavigationLink — ListCardRow
                     // already draws its own trailing chevron (matching

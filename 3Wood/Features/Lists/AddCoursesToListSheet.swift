@@ -114,10 +114,12 @@ struct AddCoursesToListSheet: View {
                     Button(state) { stateFilter = state }
                 }
             } label: {
-                Image(systemName: stateFilter == nil
+                Label("State", systemImage: stateFilter == nil
                       ? "line.3.horizontal.decrease.circle"
                       : "line.3.horizontal.decrease.circle.fill")
+                    .font(.subheadline.weight(.medium))
             }
+            .labelStyle(.titleAndIcon)
             .accessibilityLabel("Filter by state")
             .accessibilityIdentifier("listFilterMenu")
 
@@ -126,8 +128,10 @@ struct AddCoursesToListSheet: View {
                     ForEach(CourseTypeFilter.allCases) { Text($0.rawValue).tag($0) }
                 }
             } label: {
-                Image(systemName: typeFilter == .all ? "flag" : "flag.fill")
+                Label("Type", systemImage: typeFilter == .all ? "flag" : "flag.fill")
+                    .font(.subheadline.weight(.medium))
             }
+            .labelStyle(.titleAndIcon)
             .accessibilityLabel("Filter by course type")
 
             if let stateFilter {
